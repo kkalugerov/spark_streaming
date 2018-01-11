@@ -1,105 +1,113 @@
+package streams;
 
-        /*
-         * Licensed to the Apache Software Foundation (ASF) under one or more
-         * contributor license agreements.  See the NOTICE file distributed with
-         * this work for additional information regarding copyright ownership.
-         * The ASF licenses this file to You under the Apache License, Version 2.0
-         * (the "License"); you may not use this file except in compliance with
-         * the License.  You may obtain a copy of the License at
-         *
-         *    http://www.apache.org/licenses/LICENSE-2.0
-         *
-         * Unless required by applicable law or agreed to in writing, software
-         * distributed under the License is distributed on an "AS IS" BASIS,
-         * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-         * See the License for the specific language governing permissions and
-         * limitations under the License.
-         */
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.streaming.Duration;
+import org.apache.spark.streaming.api.java.JavaDStream;
+import org.apache.spark.streaming.api.java.JavaPairDStream;
+import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
+import org.apache.spark.streaming.api.java.JavaStreamingContext;
+import org.apache.spark.streaming.twitter.TwitterUtils;
+import scala.Tuple2;
+import twitter4j.FilterQuery;
+import twitter4j.Status;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
-        import org.apache.log4j.Level;
-        import org.apache.log4j.Logger;
-        import org.apache.spark.SparkConf;
-        import org.apache.spark.api.java.JavaPairRDD;
-        import org.apache.spark.api.java.function.FlatMapFunction;
-        import org.apache.spark.api.java.function.Function;
-        import org.apache.spark.api.java.function.Function2;
-        import org.apache.spark.api.java.function.PairFunction;
-        import org.apache.spark.streaming.Duration;
-        import org.apache.spark.streaming.api.java.JavaDStream;
-        import org.apache.spark.streaming.api.java.JavaPairDStream;
-        import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
-        import org.apache.spark.streaming.api.java.JavaStreamingContext;
-        import org.apache.spark.streaming.twitter.TwitterUtils;
-        import scala.Tuple2;
-        import twitter4j.Status;
+/**
+ * Displays the most positive hash tags by joining the streaming Twitter data with a static RDD of
+ * the AFINN word list (http://neuro.imm.dtu.dk/wiki/AFINN)
+ */
+public class TwitterStreaming {
 
-        import java.util.ArrayList;
-        import java.util.Arrays;
-        import java.util.Iterator;
-        import java.util.List;
+    public static List<Long> userIds = Arrays.asList(2312333412L, 14338147L, 295218901L, 745758443324080128L, 797826112810315776L,
+            2799211554L, 218996805L, 176758255L, 854000068357234688L, 852256178021294080L, 2873536332L, 947920374783766528L,
+            33962758L, 1333467482L, 213236426L, 14379660L, 125304737L, 22682896L, 2362854624L, 3129477561L, 386728215L,
+            746779366550544384L, 2568108282L, 774689518767181828L, 385562752L, 143053926L, 2349043879L, 866768940239814659L,
+            2313671966L, 2478439963L, 734688391942524928L, 917195081408319488L, 928647522817417216L, 574032254L);
 
-        /**
-         * Displays the most positive hash tags by joining the streaming Twitter data with a static RDD of
-         * the AFINN word list (http://neuro.imm.dtu.dk/wiki/AFINN)
-         */
-        public class TwitterStreaming {
+    private static List<String> consumerKeys = Arrays.asList("EIID1RQVxlNhCsWeHMUbg","XwVbsmDZ19K8cSEt0yH9EQMh5");
+    private static List<String> consumerSecrets = Arrays.asList("WWQWBRyw1hB7t0NhsiOYXJJRdUViUNlo4nKywDKQ","7sfpa97aBpA1J9mOoyaTHC96Z5YvJImGNoOI8OZa2IjjhXe9gu");
+    private static List<String> accessTokens = Arrays.asList("106389387-AzUR0xg1hKykLV4tP74XyMjHhA2mdekXsY1ZW0qL","3421080364-5Gjqf8BP7yNB0MOXTw8aOE5AlNXhl34PPDS3twy");
+    private static List<String> accessSecrets = Arrays.asList("dylzPdDnDzuHk1DwHoh1VWKqFo6VJSaWrquXF3udmfrfQ","p7RL3FjuCk9U4OpoU3lSBZYqyNXm4m24pF8iZN816d3qp");
 
-            public static List<String> hashtags(String text){
-                String[] words = text.split(" ");
-                List<String> hashtags = new ArrayList<>();
-                for (String word : words){
-                    if (word.startsWith("#")) {
-                        String hashtag = word;
-                        hashtags.add(hashtag);
-                        return hashtags;
-                    }
-                }
-                return new ArrayList<>();
+    public static List<String> mentions(String text) {
+        String[] words = text.split(" ");
+        List<String> mentions = new ArrayList<>();
+        for (String word : words) {
+            if (word.startsWith("@")) {
+                String mention = word;
+                mentions.add(mention);
+                return mentions;
             }
-
-            public static void main(String[] args) {
-
-                if (args.length < 4) {
-                    System.err.println("Usage: JavaTwitterHashTagJoinSentiments <consumer key>" +
-                            " <consumer secret> <access token> <access token secret> [<filters>]");
-                    System.exit(1);
-                }
-
-                //StreamingExamples.setStreamingLogLevels();
-                // Set logging level if log4j not configured (override by adding log4j.properties to classpath)
-                if (!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
-                    Logger.getRootLogger().setLevel(Level.WARN);
-                }
-
-                String consumerKey = args[0];
-                String consumerSecret = args[1];
-                String accessToken = args[2];
-                String accessTokenSecret = args[3];
-                String[] filters = Arrays.copyOfRange(args, 4, args.length);
-
-                // Set the system properties so that Twitter4j library used by Twitter stream
-                // can use them to generate OAuth credentials
-                System.setProperty("twitter4j.oauth.consumerKey", consumerKey);
-                System.setProperty("twitter4j.oauth.consumerSecret", consumerSecret);
-                System.setProperty("twitter4j.oauth.accessToken", accessToken);
-                System.setProperty("twitter4j.oauth.accessTokenSecret", accessTokenSecret);
-
-                SparkConf sparkConf = new SparkConf().setMaster("local[2]").setAppName("TwitterStreaming");
-
-                JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, new Duration(5000));
-                JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, filters);
+        }
+        return new ArrayList<>();
+    }
 
 
-                JavaDStream<String> words = stream.flatMap(new FlatMapFunction<Status, String>() {
-                    @Override
-                    public Iterable<String> call(Status s) {
-                        return hashtags(s.getText());
-//                        return Arrays.asList(s.getText().split(" "));
-                    }
-                });
+    public static void main(String[] args) {
 
-                words.print();
+        if (args.length < 4) {
+            System.err.println("Usage: JavaTwitterHashTagJoinSentiments <consumer key>" +
+                    " <consumer secret> <access token> <access token secret> [<filters>]");
+            System.exit(1);
+        }
+
+        //StreamingExamples.setStreamingLogLevels();
+        // Set logging level if log4j not configured (override by adding log4j.properties to classpath)
+        if (!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
+            Logger.getRootLogger().setLevel(Level.WARN);
+        }
+
+        String consumerKey = args[0];
+        String consumerSecret = args[1];
+        String accessToken = args[2];
+        String accessTokenSecret = args[3];
+        String[] query = {};
+//                long[] filters = Arrays.copyOfRange(userIds, 0, args.length);
+
+
+        // Set the system properties so that Twitter4j library used by Twitter stream
+        // can use them to generate OAuth credentials
+        JavaStreamingContext jssc = null;
+        JavaSparkContext javaSparkContext = null;
+        for(int i= 0;i<consumerKeys.size();i++) {
+            System.setProperty("twitter4j.oauth.consumerKey", consumerKeys.get(i));
+            System.setProperty("twitter4j.oauth.consumerSecret", consumerSecrets.get(i));
+            System.setProperty("twitter4j.oauth.accessToken", accessTokens.get(i));
+            System.setProperty("twitter4j.oauth.accessTokenSecret", accessSecrets.get(i));
+
+
+//        System.setProperty("twitter4j.oauth.consumerKey", args[0]);
+//        System.setProperty("twitter4j.oauth.consumerSecret", args[1]);
+//        System.setProperty("twitter4j.oauth.accessToken", args[2]);
+//        System.setProperty("twitter4j.oauth.accessTokenSecret", args[3]);
+            SparkConf sparkConf = new SparkConf().setMaster("local[*]").setAppName("TwitterStreamin");
+
+            jssc = new JavaStreamingContext(sparkConf.set("spark.driver.allowMultipleContexts", "true"), new Duration(1000));
+            javaSparkContext = jssc.sparkContext();
+            
+
+            JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, new String[]{"Monero", "BitCoin"});
+
+
+            JavaDStream<String> words = stream.flatMap((FlatMapFunction<Status, String>) s -> {
+                System.out.println(s.getText());
+                return mentions(s.getText());
+            });
+
+
+            words.print();
 
 
 //
@@ -118,7 +126,7 @@
 //                    }
 //                });
 
-                // Read in the word-sentiment list and create a static RDD from it
+            // Read in the word-sentiment list and create a static RDD from it
 //                String wordSentimentFilePath = "data/AFINN-111.txt";
 //                final JavaPairRDD<String, Double> wordSentiments = jssc.sparkContext()
 //                        .textFile(wordSentimentFilePath)
@@ -224,7 +232,10 @@
 //                    }
 //                });
 
-                jssc.start();
-                jssc.awaitTermination();
-            }
         }
+            javaSparkContext.sc().startTime();
+            jssc.start();
+            jssc.awaitTermination();
+
+    }
+}
