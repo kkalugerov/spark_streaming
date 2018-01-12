@@ -1,6 +1,6 @@
 package receivers;
 
-import model.Document;
+import model.Model;
 import twitter4j.auth.Authorization;
 import twitter4j.auth.OAuthAuthorization;
 import twitter4j.conf.ConfigurationBuilder;
@@ -10,16 +10,16 @@ import java.util.*;
 
 public class ReceiverFactory {
 
-    private static Collection<MainReceiver<Document>> createReceivers(String receiverName, Properties properties) {
+    private static Collection<MainReceiver<Model>> createReceivers(String receiverName, Properties properties) {
         return addTwitterReceivers(properties);
     }
 
-    public static Collection<MainReceiver<Document>> getReceivers(String[] streams, Properties properties) {
+    public static Collection<MainReceiver<Model>> getReceivers(String[] streams, Properties properties) {
 
-        Collection<MainReceiver<Document>> receivers = new ArrayList<>();
+        Collection<MainReceiver<Model>> receivers = new ArrayList<>();
 
         for (String stream : streams) {
-            Collection<MainReceiver<Document>> mainReceivers = ReceiverFactory.createReceivers(stream, properties);
+            Collection<MainReceiver<Model>> mainReceivers = ReceiverFactory.createReceivers(stream, properties);
             if (mainReceivers != null)
                 receivers.addAll(mainReceivers);
         }
@@ -27,8 +27,8 @@ public class ReceiverFactory {
         return receivers;
     }
 
-    private static Collection<MainReceiver<Document>> addTwitterReceivers(Properties properties) {
-        Collection<MainReceiver<Document>> receivers = new ArrayList<>();
+    private static Collection<MainReceiver<Model>> addTwitterReceivers(Properties properties) {
+        Collection<MainReceiver<Model>> receivers = new ArrayList<>();
 
 
         List<String> consumerKeys = Arrays.asList(properties.getProperty("twitter.oauth.consumerKey")

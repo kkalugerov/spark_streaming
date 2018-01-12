@@ -1,5 +1,7 @@
 package receivers;
 
+import model.Document;
+import model.Model;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.spark.storage.StorageLevel;
@@ -180,7 +182,15 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
             }
 
             newTwitterStream.addListener(new RawStreamListener() {
+                private Document toDocument(Status status, boolean processs) {
+                    Model model = new Model();
 
+                    model.setContent(status.getText());
+                    model.setLang(status.getLang());
+                    if(model.getLang().equalsIgnoreCase("en"))
+                        return new Document(model, true);
+                    return new Document(model,false);
+                }
 
                 @Override
                 public void onException(Exception ex) {
@@ -211,36 +221,11 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
                             }
                         }
 
-                        String lang = "";
-                        try {
-                            if (status.getUser().getLang() != null) {
-                                lang = status.getUser().getLang().toLowerCase();
-                            }
-                        } catch (NullPointerException e) {
-                            //NPE, ignore, avoid restart
-                        }
-
                         if (status.getText().isEmpty() || status.getText() == null) return;
                         else {
 
-                                if (filterLang(lang) && processTweet(status.getText())) {
-                                    int twSize = status.getText().length();
-                                    logger.info("Received: " + status.getText()
-                                            .substring(0, twSize > 50 ? 50 : twSize - 1) + " ~ ");
-
-                                    String text = status.getText();
-                                    boolean keyFound = false;
-                                    if (text.isEmpty() || text == null)
-                                        return;
-                                    else {
-                                        for (String s : Arrays.asList(track)) {
-                                            if (text.toLowerCase().contains(s.toLowerCase().trim()))
-                                                keyFound = true;
-                                        }
-                                    }
-                                    if (!keyFound) logger.info("\n\nNO_KEYWORDS: " + status.getText());
-//                                    store();
-                                }
+                            Document document = toDocument(status, true);
+                            store((T) document);
                         }
                     } catch (Exception e) {
                         logger.info(e.getStackTrace());

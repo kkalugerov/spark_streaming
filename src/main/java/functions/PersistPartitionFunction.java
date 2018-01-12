@@ -1,6 +1,7 @@
 package functions;
 
 import model.Document;
+import model.Model;
 import org.apache.spark.api.java.function.VoidFunction;
 import processing.Processing;
 
@@ -12,14 +13,14 @@ public class PersistPartitionFunction implements VoidFunction<Iterator<Document>
 
     @Override
     public void call(Iterator<Document> documentIterator) {
-        List<Document> documents = new ArrayList<>();
+        List<Document> document = new ArrayList<>();
         try{
             while(documentIterator.hasNext())
-                documents.add(Processing.getInstance().process(documentIterator.next()));
+                document.add(Processing.getInstance().process(documentIterator.next()));
         }catch (Exception ex){
             ex.printStackTrace();
         }
     }
 
-    private synchronized  void persist(List<Document> documents){};
+    private synchronized  void persist(List<Model> models){};
 }

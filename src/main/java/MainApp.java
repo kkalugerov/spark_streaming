@@ -1,4 +1,4 @@
-import model.Document;
+import model.Model;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
@@ -24,16 +24,13 @@ public class MainApp {
     public static JavaStreamingContext javaStreamingContext;
     public static SparkConf sparkConf;
 
-    private static List<MainReceiver<Document>> receivers = new ArrayList<>();
+    private static List<MainReceiver<Model>> receivers = new ArrayList<>();
     private static String[] streams;
 
     public static void main(String[] args) throws IOException {
-//        sparkConf = new SparkConf().setMaster("local[2]").setAppName("SparkTwitterHelloWorldExample");
-//        logger.info("args: " + args);
 
         init(args);
 
-//        long durantion = Long.parseLong(drainProp.getProperty("drain.delay"));
         javaStreamingContext = new JavaStreamingContext(sparkConf, Durations.milliseconds(2000));
         receivers.addAll(ReceiverFactory.getReceivers(streams, drainProp));
 
@@ -42,7 +39,6 @@ public class MainApp {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             javaStreamingContext.stop(true, true);
-//            logger.info("Spark stream was stopped gracefully!");
         }));
     }
 

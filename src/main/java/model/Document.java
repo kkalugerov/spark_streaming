@@ -4,20 +4,18 @@ import lombok.Data;
 
 import java.io.Serializable;
 
-public @Data
-class Document implements Serializable {
+public class Document implements Serializable {
+    private Model model;
+    private boolean process;
 
-    private Document document;
-    private String content;
-    private String userName;
+    public Document(){};
 
-
-    public Document(Document document){
-        this.document = document;
-    }
-    public Document getDoc(){
-        return this.document;
+    public Document(Model model,boolean process){
+        this.model = model;
+        this.process = process;
     }
 
+    public Model getModel(){ return this.model;}
+    public boolean getProcess() { return this.process;}
 
 }

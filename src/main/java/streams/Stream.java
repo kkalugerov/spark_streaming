@@ -1,6 +1,6 @@
 package streams;
 
-import model.Document;
+import model.Model;
 import functions.PersistForEachRDD;
 import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.api.java.JavaDStream;
@@ -17,7 +17,7 @@ public class Stream {
         this.context = context;
     }
 
-    public Stream(JavaStreamingContext context, List<MainReceiver<Document>> receiverList) {
+    public Stream(JavaStreamingContext context, List<MainReceiver<Model>> receiverList) {
         this(context);
 
         if (receiverList != null) receiverList.forEach(this::addReceiverToStream);
@@ -36,6 +36,7 @@ public class Stream {
         }catch (Exception ex){
             ex.printStackTrace();
         }
+        context.start();
     }
 
     public void stop(){
