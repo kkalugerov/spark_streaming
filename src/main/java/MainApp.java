@@ -62,7 +62,7 @@ public class MainApp {
         logger.info("Properties loaded!");
         loadLogging();
     }
-//
+
     private static void initSparkConf(String master) {
 
         sparkConf = new SparkConf().setAppName(master);

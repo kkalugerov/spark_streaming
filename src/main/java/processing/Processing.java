@@ -1,11 +1,7 @@
 package processing;
 
-import analytics.BasicPipeline;
 import analytics.CoreNLP;
 import model.Document;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.Serializable;
 
 public class Processing implements Serializable {
@@ -31,20 +27,7 @@ public class Processing implements Serializable {
     }
 
     public static Document process(Document document) {
-        if (document.getProcess()) {
-            String content = document.getModel().getContent();
-
-            document.getModel().setPersons(coreNLP.findNEPerson(content));
-            document.getModel().setLocations(coreNLP.findNELocation(content));
-            document.getModel().setOrganizations(coreNLP.findNEOrganization(content));
-
-//            document.getModel().setKeywords(basicPipeline.getKeywords(content));
-//            document.getModel().setLocations(basicPipeline.findNamedEntities(content).get("Locations"));
-//            document.getModel().setOrganizations(basicPipeline.findNamedEntities(content).get("Organizations"));
-//            document.getModel().setPersons(basicPipeline.findNamedEntities(content).get("Person"));
-
-
-        }
+        if (document.getProcess()) coreNLP.processWithAnalytics(document.getModel());
         return document;
     }
 }

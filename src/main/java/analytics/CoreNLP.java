@@ -1,5 +1,6 @@
 package analytics;
 
+import model.Model;
 import opennlp.tools.namefind.NameFinderME;
 import opennlp.tools.namefind.TokenNameFinderModel;
 
@@ -75,6 +76,10 @@ public class CoreNLP {
         for (String entity : namedEntities) {
             locations.add(entity);
         }
+        if (!locations.isEmpty())
+            logger.info("Named entities of type location found  " + locations);
+        else
+            logger.info("No named entities of type location found !");
         return locations;
     }
 
@@ -86,7 +91,19 @@ public class CoreNLP {
         for (String entity : namedEntities) {
             organizations.add(entity);
         }
+
+        if (!organizations.isEmpty())
+            logger.info("Named entities of type location found  " + organizations);
+        else
+            logger.info("No named entities of type location found !");
         return organizations;
+    }
+
+    public void processWithAnalytics(Model model){
+        String content = model.getContent();
+        model.setPersons(findNEPerson(content));
+        model.setOrganizations(findNEOrganization(content));
+        model.setLocations(findNELocation(content));
     }
 
     public static void main(String[] args) {
