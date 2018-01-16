@@ -223,7 +223,6 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
 
                         if (status.getText().isEmpty() || status.getText() == null) return;
                         else {
-
                             Document document = toDocument(status, true);
                             store((T) document);
                         }
