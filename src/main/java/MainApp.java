@@ -94,8 +94,9 @@ public class MainApp {
             return;
         }
 
-        if (propLocation.isEmpty())
+        if (propLocation.isEmpty()) {
             drainProp.load(MainApp.class.getClassLoader().getResourceAsStream("drain.properties"));
+        }
         else drainProp.load(new FileInputStream(propLocation));
 
         Arrays.asList("twitter")

@@ -16,9 +16,9 @@ import java.util.*;
 
 
 public class BasicPipeline {
-    private static Properties properties = (Properties) new Properties()
-            .setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref, sentiment");
-    private static StanfordCoreNLP pipeline = new StanfordCoreNLP(properties);
+//    private static Properties properties = (Properties) new Properties()
+//            .setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref, sentiment");
+//    private static StanfordCoreNLP pipeline = new StanfordCoreNLP(properties);
     private static BasicPipeline INSTANCE;
     private static Logger logger = Logger.getLogger(BasicPipeline.class);
 
@@ -46,39 +46,39 @@ public class BasicPipeline {
     }
 
 
-    public  Map<String, Set<String>> findNamedEntities(String text) {
-        logger.info("Finding entity type matches in the " + text);
-
-        // create an empty Annotation just with the given text
-        Annotation document = new Annotation(text);
-
-        // run all Annotators on this text
-        pipeline.annotate(document);
-        List<CoreMap> sentences = document.get(CoreAnnotations.SentencesAnnotation.class);
-        Map<String, Set<String>> entities = new HashMap<>();
-        Set<String> person = new HashSet<>();
-        Set<String> locations = new HashSet<>();
-        Set<String> organization = new HashSet<>();
-        for (CoreMap sentence : sentences) {
-            for (CoreLabel token : sentence.get(CoreAnnotations.TokensAnnotation.class)) {
-                String word = token.get(CoreAnnotations.TextAnnotation.class);
-                String entityType = token.get(CoreAnnotations.NamedEntityTagAnnotation.class);
-
-                if (entityType.equalsIgnoreCase("PERSON"))
-                    person.add(word);
-                if (entityType.equalsIgnoreCase("LOCATION"))
-                    locations.add(word);
-                if (entityType.equalsIgnoreCase("ORGANIZATION"))
-                    organization.add(word);
-            }
-        }
-
-        entities.put("Persons", person);
-        entities.put("Locations", locations);
-        entities.put("Organizations", organization);
-
-        return entities;
-    }
+//    public  Map<String, Set<String>> findNamedEntities(String text) {
+//        logger.info("Finding entity type matches in the " + text);
+//
+//        // create an empty Annotation just with the given text
+//        Annotation document = new Annotation(text);
+//
+//        // run all Annotators on this text
+//        pipeline.annotate(document);
+//        List<CoreMap> sentences = document.get(CoreAnnotations.SentencesAnnotation.class);
+//        Map<String, Set<String>> entities = new HashMap<>();
+//        Set<String> person = new HashSet<>();
+//        Set<String> locations = new HashSet<>();
+//        Set<String> organization = new HashSet<>();
+//        for (CoreMap sentence : sentences) {
+//            for (CoreLabel token : sentence.get(CoreAnnotations.TokensAnnotation.class)) {
+//                String word = token.get(CoreAnnotations.TextAnnotation.class);
+//                String entityType = token.get(CoreAnnotations.NamedEntityTagAnnotation.class);
+//
+//                if (entityType.equalsIgnoreCase("PERSON"))
+//                    person.add(word);
+//                if (entityType.equalsIgnoreCase("LOCATION"))
+//                    locations.add(word);
+//                if (entityType.equalsIgnoreCase("ORGANIZATION"))
+//                    organization.add(word);
+//            }
+//        }
+//
+//        entities.put("Persons", person);
+//        entities.put("Locations", locations);
+//        entities.put("Organizations", organization);
+//
+//        return entities;
+//    }
 }
 
 
