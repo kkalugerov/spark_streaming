@@ -1,9 +1,14 @@
 package analytics;
 
 import model.Model;
+import opennlp.tools.chunker.ChunkerME;
+import opennlp.tools.chunker.ChunkerModel;
 import opennlp.tools.namefind.NameFinderME;
 import opennlp.tools.namefind.TokenNameFinderModel;
 
+import opennlp.tools.postag.POSModel;
+import opennlp.tools.postag.POSTagger;
+import opennlp.tools.postag.POSTaggerME;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
@@ -16,31 +21,29 @@ import java.util.*;
 public class CoreNLP {
     private static final Logger logger = LoggerFactory.getLogger(CoreNLP.class);
     private static CoreNLP INSTANCE;
-    private static String fileToken = new File("").getAbsolutePath() + "/src/main/resources/en-token.bin";
-    private static String filePerson = new File("")
-            .getAbsolutePath() + "/src/main/resources/en-ner-person.bin";
-    private static String fileLocation = new File("")
-            .getAbsolutePath() + "/src/main/resources/en-ner-location.bin";
-    private static String fileOrganization = new File("")
-            .getAbsolutePath() + "/src/main/resources/en-ner-organization.bin";
+    private static TokenizerME tokenizer;
+    private static NameFinderME personFinder;
+    private static NameFinderME locationFinder;
+    private static NameFinderME organizationFinder;
+    private static ChunkerME chunker;
+    private static POSTagger posTagger;
     private static TokenizerModel tokenizerModel;
     private static TokenNameFinderModel personModel;
     private static TokenNameFinderModel locationModel;
     private static TokenNameFinderModel organizationModel;
+    private static ChunkerModel chunkerModel;
+    private static POSModel posModel;
 
-    public CoreNLP() {
-
-    }
 
     public static CoreNLP getInstance() throws Exception {
-        FileInputStream inputStreamTokenizer = new FileInputStream(new File(fileToken));
-        FileInputStream inputStreamPerson = new FileInputStream(new File(filePerson));
-        FileInputStream inputStreamLocation = new FileInputStream(new File(fileLocation));
-        FileInputStream inputStreamOrganization = new FileInputStream(new File(fileOrganization));
-        tokenizerModel = new TokenizerModel(inputStreamTokenizer);
-        personModel = new TokenNameFinderModel(inputStreamPerson);
-        locationModel = new TokenNameFinderModel(inputStreamLocation);
-        organizationModel = new TokenNameFinderModel(inputStreamOrganization);
+        initModels();
+        tokenizer = new TokenizerME(tokenizerModel);
+        personFinder = new NameFinderME(personModel);
+        locationFinder = new NameFinderME(locationModel);
+        organizationFinder = new NameFinderME(organizationModel);
+        chunker = new ChunkerME(chunkerModel);
+        posTagger = new POSTaggerME(posModel);
+
         if (INSTANCE == null) {
             synchronized (CoreNLP.class) {
                 INSTANCE = new CoreNLP();
@@ -49,57 +52,95 @@ public class CoreNLP {
         return INSTANCE;
     }
 
-    public String[] tokenize(String sentence) {
-        TokenizerME tokenizer = new TokenizerME(tokenizerModel);
-        return tokenizer.tokenize(sentence);
+    private static void initModels() throws IOException {
+        tokenizerModel = new TokenizerModel(new FileInputStream(new File("")
+                .getAbsolutePath() + "/src/main/resources/models/en-token.bin"));
+        personModel = new TokenNameFinderModel(new FileInputStream(new File("")
+                .getAbsolutePath() + "/src/main/resources/models/en-ner-person.bin"));
+        locationModel = new TokenNameFinderModel(new FileInputStream(new File("")
+                .getAbsolutePath() + "/src/main/resources/models/en-ner-location.bin"));
+        organizationModel = new TokenNameFinderModel(new FileInputStream(new File("")
+                .getAbsolutePath() + "/src/main/resources/models/en-ner-organization.bin"));
+        chunkerModel = new ChunkerModel(new FileInputStream(new File("")
+                .getAbsolutePath() + "/src/main/resources/models/en-chunker.bin"));
+        posModel = new POSModel(new FileInputStream(new File("")
+                .getAbsolutePath() + "/src/main/resources/models/en-pos-maxent.bin"));
+    }
+
+    public static String[] tokenize(String sentence) {
+        try {
+            return tokenizer.tokenize(sentence);
+        }catch (Exception ex){
+            ex.getMessage();
+            ex.getCause();
+        }
+        return new String[0];
     }
 
     public Set<String> findNEPerson(String content) {
         Set<String> persons = new HashSet<>();
         String[] tokens = tokenize(content);
-        Span[] nameSpans = new NameFinderME(personModel).find(tokens);
-        String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
-        for (String entity : namedEntities) persons.add(entity);
+        if(tokens.length > 0) {
+            Span[] nameSpans = personFinder.find(tokens);
+            String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
+            for (String entity : namedEntities) persons.add(entity);
 
-        if (!persons.isEmpty())
-            logger.info("Person named entities found " + persons);
-        else
-            logger.info("No named entities person found !");
-        return persons;
+            if (!persons.isEmpty())
+                logger.info("Person named entities found " + persons);
+            else
+                logger.info("No named entities person found !");
+            return persons;
+        }
+        return new HashSet<>();
     }
 
     public Set<String> findNELocation(String content) {
         Set<String> locations = new HashSet<>();
         String[] tokens = tokenize(content);
-        Span[] nameSpans = new NameFinderME(locationModel).find(tokens);
-        String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
-        for (String entity : namedEntities) {
-            locations.add(entity);
+        if(tokens.length > 0) {
+            Span[] nameSpans = locationFinder.find(tokens);
+            String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
+            for (String entity : namedEntities) {
+                locations.add(entity);
+            }
+            if (!locations.isEmpty())
+                logger.info("Named entities of type location found  " + locations);
+            else
+                logger.info("No named entities of type location found !");
+            return locations;
         }
-        if (!locations.isEmpty())
-            logger.info("Named entities of type location found  " + locations);
-        else
-            logger.info("No named entities of type location found !");
-        return locations;
+        return new HashSet<>();
     }
 
     public Set<String> findNEOrganization(String content) {
         Set<String> organizations = new HashSet<>();
         String[] tokens = tokenize(content);
-        Span[] nameSpans =  new NameFinderME(organizationModel).find(tokens);
-        String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
-        for (String entity : namedEntities) {
-            organizations.add(entity);
-        }
+        if(tokens.length > 0) {
+            Span[] nameSpans = organizationFinder.find(tokens);
+            String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
+            for (String entity : namedEntities) {
+                organizations.add(entity);
+            }
 
-        if (!organizations.isEmpty())
-            logger.info("Named entities of type location found  " + organizations);
-        else
-            logger.info("No named entities of type location found !");
-        return organizations;
+            if (!organizations.isEmpty())
+                logger.info("Named entities of type location found  " + organizations);
+            else
+                logger.info("No named entities of type location found !");
+            return organizations;
+        }
+        return new HashSet<>();
     }
 
-    public void processWithAnalytics(Model model){
+    public void chunker(String content) {
+        String[] tokens = tokenize(content);
+        String[] posTags = posTagger.tag(tokens);
+        String[] chunks = chunker.chunk(tokens, posTags);
+        for (String chunk : chunks)
+            System.out.println(chunk);
+
+    }
+
+    public void processWithAnalytics(Model model) {
         String content = model.getContent();
         model.setPersons(findNEPerson(content));
         model.setOrganizations(findNEOrganization(content));
@@ -107,7 +148,11 @@ public class CoreNLP {
     }
 
     public static void main(String[] args) {
-
+        try {
+            CoreNLP.getInstance().chunker("Most large cities in the world had morning and afternoon newspapers");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }

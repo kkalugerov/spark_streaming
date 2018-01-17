@@ -96,7 +96,7 @@ public class TwitterStreaming {
 
             jssc = new JavaStreamingContext(sparkConf.set("spark.driver.allowMultipleContexts", "true"), new Duration(1000));
             javaSparkContext = jssc.sparkContext();
-            
+
 
             JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, new String[]{"Monero", "BitCoin"});
 
