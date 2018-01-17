@@ -12,12 +12,15 @@ import opennlp.tools.postag.POSTaggerME;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
+@SuppressWarnings("unchecked")
 public class CoreNLP {
     private static final Logger logger = LoggerFactory.getLogger(CoreNLP.class);
     private static CoreNLP INSTANCE;
@@ -140,11 +143,49 @@ public class CoreNLP {
 
     }
 
+    private Map<String, Set<String>> extractCashTagHashTagAndMentions(List<String> tokens) {
+        Map<String, Set<String>> extractedCashTagHashTagsAndMentions = new HashMap<>();
+
+        Set<String> hashtags = tokens.stream()
+                .distinct()
+                .filter(token -> token.startsWith("#"))
+                .map(token -> token.replaceAll("[^a-zA-Z0-9#]", "").trim().toLowerCase())
+                .filter(hashtag -> !hashtag.equalsIgnoreCase("#"))
+                .collect(Collectors.toSet());
+
+        Set<String> cashtags = tokens.stream()
+                .distinct()
+                .filter(token->token.startsWith("$") && !StringUtils.isNumeric(token.substring(1)) && !token.contains("."))
+                .collect(Collectors.toSet());
+
+        Set<String> mentions = tokens.stream()
+                .distinct()
+                .filter(s -> s.startsWith("@"))
+                .collect(Collectors.toSet());
+        mentions.forEach(s -> {
+            if (s.contains(":")) s = s.substring(0, s.indexOf(":"));
+        });
+
+        extractedCashTagHashTagsAndMentions.put("@" , mentions);
+        extractedCashTagHashTagsAndMentions.put("#", hashtags);
+        extractedCashTagHashTagsAndMentions.put("$", cashtags);
+
+        return extractedCashTagHashTagsAndMentions;
+    }
+
     public void processWithAnalytics(Model model) {
+        Map<String,Set<String>> cashtagsAndhastags = extractCashTagHashTagAndMentions(Arrays.asList(tokenize(content)));
+        Object mentions = cashtagsAndhastags.values().toArray()[0];
+        Object hashtags = cashtagsAndhastags.values().toArray()[1];
+        Object cashtags = cashtagsAndhastags.values().toArray()[2];
         String content = model.getContent();
         model.setPersons(findNEPerson(content));
         model.setOrganizations(findNEOrganization(content));
         model.setLocations(findNELocation(content));
+        model.setHashtags((Set<String>) hashtags);
+        model.setCashtags((Set<String>) cashtags);
+        model.setMentions((Set<String>) mentions);
+
     }
 
     public static void main(String[] args) {

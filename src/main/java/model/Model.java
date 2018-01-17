@@ -11,69 +11,19 @@ import java.util.Set;
 
 
 public @Data class Model implements Serializable {
+    private String rawJson;
     private String sentiment;
-    @Setter @Getter private String content;
+    private String content;
     private String lang;
     private List<String> keywords;
     private Set<String> locations = new HashSet<>();
+    private Set<String> hashtags = new HashSet<>();
+    private Set<String> mentions = new HashSet<>();
+    private Set<String> cashtags = new HashSet<>();
     private Set<String> persons = new HashSet<>();
     private Set<String> organizations = new HashSet<>();
 
-//    public String getLang() {
-//        return lang;
-//    }
-//
-//    public void setLang(String lang) {
-//        this.lang = lang;
-//    }
-//
-//    public Set<String> getLocations() {
-//        return locations;
-//    }
-//
-//    public void setLocations(Set<String> locations) {
-//        this.locations = locations;
-//    }
-//
-//    public Set<String> getPersons() {
-//        return persons;
-//    }
-//
-//    public void setPersons(Set<String> persons) {
-//        this.persons = persons;
-//    }
-//
-//    public Set<String> getOrganizations() {
-//        return organizations;
-//    }
-//
-//    public void setOrganizations(Set<String> organizations) {
-//        this.organizations = organizations;
-//    }
+    public Model() {
+    }
 
-    public Model(){};
-//
-//    public List<String> getKeywords() {
-//        return keywords;
-//    }
-//
-//    public void setKeywords(List<String> keywords) {
-//        this.keywords = keywords;
-//    }
-//
-//    public String getContent() {
-//        return content;
-//    }
-//
-//    public void setContent(String content) {
-//        this.content = content;
-//    }
-//
-//    public String getSentiment() {
-//        return this.sentiment;
-//    }
-//
-//    public void setSentiment(String sentiment) {
-//        this.sentiment = sentiment;
-//    }
 }

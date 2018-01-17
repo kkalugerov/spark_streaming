@@ -182,11 +182,12 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
             }
 
             newTwitterStream.addListener(new RawStreamListener() {
-                private Document toDocument(Status status, boolean processs) {
+                private Document toDocument(Status status, String rawJson) {
                     Model model = new Model();
 
                     model.setContent(status.getText());
                     model.setLang(status.getLang());
+                    model.setRawJson(rawJson);
                     if(model.getLang().equalsIgnoreCase("en"))
                         return new Document(model, true);
                     return new Document(model,false);
@@ -223,7 +224,7 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
 
                         if (status.getText().isEmpty() || status.getText() == null) return;
                         else {
-                            Document document = toDocument(status, true);
+                            Document document = toDocument(status, rawString);
                             store((T) document);
                         }
                     } catch (Exception e) {
