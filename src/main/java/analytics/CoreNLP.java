@@ -174,11 +174,11 @@ public class CoreNLP {
     }
 
     public void processWithAnalytics(Model model) {
+        String content = model.getContent();
         Map<String,Set<String>> cashtagsAndhastags = extractCashTagHashTagAndMentions(Arrays.asList(tokenize(content)));
         Object mentions = cashtagsAndhastags.values().toArray()[0];
         Object hashtags = cashtagsAndhastags.values().toArray()[1];
         Object cashtags = cashtagsAndhastags.values().toArray()[2];
-        String content = model.getContent();
         model.setPersons(findNEPerson(content));
         model.setOrganizations(findNEOrganization(content));
         model.setLocations(findNELocation(content));
