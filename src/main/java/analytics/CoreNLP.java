@@ -1,5 +1,12 @@
 package analytics;
 
+import edu.stanford.nlp.ling.CoreAnnotations;
+import edu.stanford.nlp.neural.rnn.RNNCoreAnnotations;
+import edu.stanford.nlp.pipeline.Annotation;
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import edu.stanford.nlp.sentiment.SentimentCoreAnnotations;
+import edu.stanford.nlp.trees.Tree;
+import edu.stanford.nlp.util.CoreMap;
 import model.Model;
 import opennlp.tools.chunker.ChunkerME;
 import opennlp.tools.chunker.ChunkerModel;
@@ -10,12 +17,15 @@ import opennlp.tools.namefind.TokenNameFinderModel;
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTagger;
 import opennlp.tools.postag.POSTaggerME;
-import opennlp.tools.tokenize.TokenizerME;
-import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.tokenize.WhitespaceTokenizer;
 import opennlp.tools.util.*;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-//import org.apache.commons.lang3.StringUtils;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.StringUtils;
@@ -28,14 +38,12 @@ import java.util.stream.Collectors;
 public class CoreNLP {
     private static final Logger logger = LoggerFactory.getLogger(CoreNLP.class);
     private static CoreNLP INSTANCE;
-    private static TokenizerME tokenizer;
     private static NameFinderME personFinder;
     private static NameFinderME locationFinder;
     private static NameFinderME organizationFinder;
     private static DocumentCategorizerME categorizer;
     private static ChunkerME chunker;
     private static POSTagger posTagger;
-    private static TokenizerModel tokenizerModel;
     private static TokenNameFinderModel personModel;
     private static TokenNameFinderModel locationModel;
     private static TokenNameFinderModel organizationModel;
@@ -44,13 +52,20 @@ public class CoreNLP {
     private static DoccatModel doccatModel;
     private static Set<String> stopWords;
     private static InputStream inputStreamStopWords;
+    private static InputStreamFactory inputStreamFactory;
+    private static WhitespaceTokenizer tokenizer = WhitespaceTokenizer.INSTANCE;
+    private static StanfordCoreNLP pipeline;
 
 
-    public static CoreNLP getInstance() throws Exception {
-        initModels();
-        trainModel();
-        stopWords =  new HashSet<>(IOUtils.readLines(inputStreamStopWords, "UTF-8"));
-        tokenizer = new TokenizerME(tokenizerModel);
+    public static CoreNLP getInstance() {
+        try {
+            initModels();
+            stopWords = new HashSet<>(IOUtils.readLines(inputStreamStopWords, "UTF-8"));
+            trainModel();
+        } catch (IOException ex) {
+            logger.info("Exception occur while trying to initialize ");
+        }
+        pipeline = new StanfordCoreNLP(getProperties());
         personFinder = new NameFinderME(personModel);
         locationFinder = new NameFinderME(locationModel);
         organizationFinder = new NameFinderME(organizationModel);
@@ -66,46 +81,49 @@ public class CoreNLP {
         return INSTANCE;
     }
 
-    private static void initModels() throws IOException {
-        inputStreamStopWords = new FileInputStream(new File("")
-                .getAbsolutePath() + "/src/main/resources/stopwords.txt");
-        tokenizerModel = new TokenizerModel(new FileInputStream(new File("")
-                .getAbsolutePath() + "/src/main/resources/models/en-token.bin"));
-        personModel = new TokenNameFinderModel(new FileInputStream(new File("")
-                .getAbsolutePath() + "/src/main/resources/models/en-ner-person.bin"));
-        locationModel = new TokenNameFinderModel(new FileInputStream(new File("")
-                .getAbsolutePath() + "/src/main/resources/models/en-ner-location.bin"));
-        organizationModel = new TokenNameFinderModel(new FileInputStream(new File("")
-                .getAbsolutePath() + "/src/main/resources/models/en-ner-organization.bin"));
-        chunkerModel = new ChunkerModel(new FileInputStream(new File("")
-                .getAbsolutePath() + "/src/main/resources/models/en-chunker.bin"));
-        posModel = new POSModel(new FileInputStream(new File("")
-                .getAbsolutePath() + "/src/main/resources/models/en-pos-maxent.bin"));
-
+    private static Properties getProperties() {
+        Properties props = new Properties();
+        props.setProperty("annotators", "tokenize, ssplit, parse, sentiment");
+        return props;
     }
 
-    public static void trainModel() {
+    private static void initModels() {
         try {
-            InputStreamFactory inputStreamFactory = new MarkableFileInputStreamFactory(
+            inputStreamStopWords = new FileInputStream(new File("")
+                    .getAbsolutePath() + "/src/main/resources/stopwords.txt");
+            personModel = new TokenNameFinderModel(new FileInputStream(new File("")
+                    .getAbsolutePath() + "/src/main/resources/models/en-ner-person.bin"));
+            locationModel = new TokenNameFinderModel(new FileInputStream(new File("")
+                    .getAbsolutePath() + "/src/main/resources/models/en-ner-location.bin"));
+            organizationModel = new TokenNameFinderModel(new FileInputStream(new File("")
+                    .getAbsolutePath() + "/src/main/resources/models/en-ner-organization.bin"));
+            chunkerModel = new ChunkerModel(new FileInputStream(new File("")
+                    .getAbsolutePath() + "/src/main/resources/models/en-chunker.bin"));
+            posModel = new POSModel(new FileInputStream(new File("")
+                    .getAbsolutePath() + "/src/main/resources/models/en-pos-maxent.bin"));
+            inputStreamFactory = new MarkableFileInputStreamFactory(
                     new File("/home/zealot/IdeaProjects/" +
                             "spark_twitter_streaming/src/main/resources/training/training_tweets.txt"));
-            ObjectStream<String> lineStream = new PlainTextByLineStream(inputStreamFactory, "UTF-8");
-            ObjectStream<DocumentSample> sampleStream = new DocumentSampleStream(lineStream);
-
-            doccatModel = DocumentCategorizerME
-                    .train("en", sampleStream, TrainingParameters.defaultParams(), new DoccatFactory());
-        } catch (IOException e) {
-            e.printStackTrace();
-            e.getMessage();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            ex.getMessage();
+            ex.getCause();
         }
+    }
+
+    public static void trainModel() throws IOException {
+        ObjectStream<String> lineStream = new PlainTextByLineStream(inputStreamFactory, "UTF-8");
+        ObjectStream<DocumentSample> sampleStream = new DocumentSampleStream(lineStream);
+        doccatModel = DocumentCategorizerME
+                .train("en", sampleStream, TrainingParameters.defaultParams(), new DoccatFactory());
     }
 
     public String classify(String content) {
         String sentiment;
-        String[] tokens = WhitespaceTokenizer.INSTANCE.tokenize(content);
+        String[] tokens = tokenizer.tokenize(content);
         double[] outcomes = categorizer.categorize(tokens);
         String category = categorizer.getBestCategory(outcomes);
-        if (category.equalsIgnoreCase("1"))
+        if (category.equalsIgnoreCase("2"))
             sentiment = "POSITIVE";
         else if (category.equalsIgnoreCase("0"))
             sentiment = "NEGATIVE";
@@ -115,19 +133,10 @@ public class CoreNLP {
         return sentiment;
     }
 
-    public static String[] tokenize(String sentence) {
-        try {
-            return tokenizer.tokenize(sentence);
-        } catch (Exception ex) {
-            ex.getMessage();
-            ex.getCause();
-        }
-        return new String[0];
-    }
 
     public Set<String> findNEPerson(String content) {
         Set<String> persons = new HashSet<>();
-        String[] tokens = tokenize(content);
+        String[] tokens = tokenizer.tokenize(content);
         if (tokens.length > 0) {
             Span[] nameSpans = personFinder.find(tokens);
             String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
@@ -145,7 +154,7 @@ public class CoreNLP {
 
     public Set<String> findNELocation(String content) {
         Set<String> locations = new HashSet<>();
-        String[] tokens = tokenize(content);
+        String[] tokens = tokenizer.tokenize(content);
         if (tokens.length > 0) {
             Span[] nameSpans = locationFinder.find(tokens);
             String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
@@ -163,7 +172,7 @@ public class CoreNLP {
 
     public Set<String> findNEOrganization(String content) {
         Set<String> organizations = new HashSet<>();
-        String[] tokens = tokenize(content);
+        String[] tokens = tokenizer.tokenize(content);
         if (tokens.length > 0) {
             Span[] nameSpans = organizationFinder.find(tokens);
             String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
@@ -180,7 +189,7 @@ public class CoreNLP {
     }
 
     public void chunker(String content) {
-        String[] tokens = tokenize(content);
+        String[] tokens = tokenizer.tokenize(content);
         String[] posTags = posTagger.tag(tokens);
         String[] chunks = chunker.chunk(tokens, posTags);
         for (String chunk : chunks)
@@ -221,12 +230,12 @@ public class CoreNLP {
     public void processWithAnalytics(Model model) {
         String content = model.getContent();
         content = StringUtils.removeURLs(content).replaceAll("[^\\w\\s]", "");
-        String clearContent= "";
+        String clearContent = "";
         for (String word : stopWords)
             clearContent = content.replaceAll("\\s+" + word + "\\s+", " ");
 
         Map<String, Set<String>> cashtagsAndhastags =
-                extractCashTagHashTagAndMentions(Arrays.asList(tokenize(clearContent)));
+                extractCashTagHashTagAndMentions(Arrays.asList(tokenizer.tokenize(clearContent)));
         Object mentions = cashtagsAndhastags.values().toArray()[0];
         Object hashtags = cashtagsAndhastags.values().toArray()[1];
         Object cashtags = cashtagsAndhastags.values().toArray()[2];
@@ -240,7 +249,107 @@ public class CoreNLP {
 
     }
 
+    public static void getSentiment(String text) {
+
+        double sentimentSum = 0;
+        int mainSentiment = 0;
+        int longest = 0;
+
+        Annotation annotation = pipeline.process(text);
+        // mainSentiment is the sentiment of the whole document. We find
+        // the whole document by comparing the length of individual
+        // annotated "fragments"
+        for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
+            Tree tree = sentence.get(SentimentCoreAnnotations.SentimentAnnotatedTree.class);
+            int sentiment = RNNCoreAnnotations.getPredictedClass(tree);
+            String partText = sentence.toString();
+            if (partText.length() > longest) {
+                mainSentiment = sentiment;
+                longest = partText.length();
+            }
+        }
+
+
+        sentimentSum += mainSentiment;
+
+
+        double average = sentimentSum / text.length();
+        String sentiment;
+        if (average >= 2.25)
+            sentiment = "POSITIVE";
+        else if (average <= 1.75)
+            sentiment = "NEGATIVE";
+        else
+            sentiment = "NEUTRAL";
+        System.out.println(mainSentiment);
+    }
+
+    public static List<String> callSolr() {
+        SolrClient client = new HttpSolrClient("http://hs1.yatrus.com:8983/solr/Twitter3");
+        String queryStr = "SentimentDocumentString:POSITIVE";
+        SolrQuery query = new SolrQuery(queryStr);
+        query.setFilterQueries("Language:en");
+        query.setSort("timestamp", SolrQuery.ORDER.desc);
+        query.setRows(300);
+        query.setFields("Title");
+        SolrDocumentList result;
+        List<String> positiveTitles = new ArrayList<>();
+        List<String> newList = new ArrayList<>();
+
+        try {
+            result = client.query(query).getResults();
+            for (int i = 0; i < result.size(); i++) {
+                positiveTitles.add(result.get(i).entrySet().iterator().next().getValue().toString());
+                String newTitle = null;
+                for(String title : positiveTitles){
+                    newTitle = String.format("%s %s", "2", title);
+                }
+                newList.add(newTitle);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        try {
+            FileUtils.writeLines(new File("/home/zealot/IdeaProjects/spark_twitter_streaming/src/main/resources/training/positive_tweets.txt"),
+                    newList);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return newList;
+    }
+
     public static void main(String[] args) {
+
+        callSolr();
+
+
+//        CoreNLP coreNLP = CoreNLP.getInstance();
+//
+//        List<String> negativeSentences = Arrays.asList("The painting is ugly, will return it tomorrow...",
+//                "Bad news, my flight just got cancelled.","I lost my keys","He killed our good mood",
+//                "I feel bad for what I did","I hate to say goodbye","Had a bad evening, need urgently a beer.");
+//
+//        List<String> positiveSentences = Arrays.asList("Watching a nice movie", "One of the best soccer games, worth seeing it",
+//                "Very tasty, not only for vegetarians","On today's show we met Angela, a woman with an amazing story",
+//                "Love the new book I reveived for Christmas","Thank you Molly making this possible");
+//
+//        List<String> neutralSentences = Arrays.asList("Too early to travel..need a coffee",
+//                "I put on weight again","On a trip to Iceland","I set my new year's resolution","Sorry mate, there is no more room for you",
+//                "Nobody to ask about directions","I fell in love again");
+//
+//        for (String sentence : negativeSentences)
+//            System.out.println(coreNLP.classify(sentence));
+//
+//        System.out.println();
+//
+//        for(String sent : positiveSentences)
+//            System.out.println(coreNLP.classify(sent));
+//
+//        System.out.println();
+//
+//        for(String sent2 : neutralSentences)
+//            System.out.println(coreNLP.classify(sent2));
     }
 
 }
