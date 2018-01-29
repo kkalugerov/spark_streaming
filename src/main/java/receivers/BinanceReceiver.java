@@ -5,6 +5,7 @@ import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.BinanceApiWebSocketClient;
 import com.binance.api.client.domain.event.DepthEvent;
 import com.binance.api.client.domain.market.TickerStatistics;
+import utils.TimeUtils;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -21,30 +22,22 @@ public class BinanceReceiver {
     private static BinanceApiWebSocketClient webSocketClient;
     private static BinanceApiRestClient apiRestClient;
     private static BinanceReceiver INSTANCE;
-    private static String apiKeyTest = "fZau1JSiwe2IHTOyMWWBn85NNRJr0QOeEdSBOcImRCTZD1VEoqiTnKIM2gdLolDL";
-    private static String apiSecretTest = "uTuHpM9L0gRHi7o64CbeXGFAFDnFA2cnMBV29f1tTxRO7eLkKQYWAhSSk7rApoDG";
-    private String apikey;
-    private String apiSecret;
-    private String identity;
-    private static List<String> apiKeys = Arrays.asList("fZau1JSiwe2IHTOyMWWBn85NNRJr0QOeEdSBOcImRCTZD1VEoqiTnKIM2gdLolDL",
-            "H12KXTJfRYp03Lp2RGBBSumg7jjI5YCHcJcGcN9b4f1GMCJqX9tQg7eo2HIA25Sr");
-    private static List<String> apiSecrets = Arrays.asList("uTuHpM9L0gRHi7o64CbeXGFAFDnFA2cnMBV29f1tTxRO7eLkKQYWAhSSk7rApoDG",
-            "4RsMJtYrAaHtGvVX6unyDbRk7G1HQP47L8MBzzZL8RUsjgy6GlI6pa0vH26rR5rm");
-
+    private static String apiKey;
+    private static String apiSecret;
     private List<BigDecimal> prices = new ArrayList<>();
     private BigDecimal price;
     private String timeOfEvent;
     private static Properties properties = new Properties();
     private static List<String> pairs;
 
-
+    public BinanceReceiver(){};
 
     public static BinanceReceiver getInstance() {
-        initClients();
         loadProps();
         initProps();
+        initClients();
         if (INSTANCE == null)
-            synchronized (BinanceReceiver.class) {
+        synchronized (BinanceReceiver.class) {
                 INSTANCE = new BinanceReceiver();
             }
         return INSTANCE;
@@ -58,24 +51,19 @@ public class BinanceReceiver {
             ex.printStackTrace();
         }
     }
-    public static void initClients() {
-        apiRestClient = BinanceApiClientFactory.newInstance(apiKeyTest, apiSecretTest).newRestClient();
-        webSocketClient = BinanceApiClientFactory.newInstance(apiKeyTest, apiSecretTest).newWebSocketClient();
+    private static void initClients() {
+        apiRestClient = BinanceApiClientFactory.newInstance(apiKey, apiSecret).newRestClient();
+        webSocketClient = BinanceApiClientFactory.newInstance(apiKey, apiSecret).newWebSocketClient();
     }
 
-    public static void initProps(){
+    private static void initProps(){
         pairs = Arrays.asList(properties.getProperty("binance.pairs").split(","));
+        apiKey = properties.getProperty("binance.api_key");
+        apiSecret = properties.getProperty("binance.api_secret");
+
     }
 
-    public BinanceReceiver(){};
-
-    public BinanceReceiver(String key, String secret) {
-        this.apikey = key;
-        this.apiSecret = secret;
-        initClients(key, secret);
-    }
-
-    public static void initClients(String apikey, String apiSecret) {
+    private static void initClients(String apikey, String apiSecret) {
         apiRestClient = BinanceApiClientFactory.newInstance(apikey, apiSecret).newRestClient();
         webSocketClient = BinanceApiClientFactory.newInstance(apikey, apiSecret).newWebSocketClient();
     }
@@ -85,7 +73,7 @@ public class BinanceReceiver {
     public void getAggregatedTradeStream(String pair) {
         webSocketClient.onAggTradeEvent(pair,
                 response -> {
-                    timeOfEvent = millisToHour(response.getEventTime());
+                    timeOfEvent = TimeUtils.millisToHour(response.getEventTime());
                     price = new BigDecimal(response.getPrice());
                     prices.add(price);
                     getPrice(response.getSymbol());
@@ -104,16 +92,10 @@ public class BinanceReceiver {
         System.out.println(String.format("%s", tickerStatistics.getWeightedAvgPrice()));
     }
 
-    public String millisToHour(long milliseconds) {
-        Instant instant = Instant.ofEpochMilli(milliseconds);
-        return instant.toString();
-    }
-
 
     public static void main(String[] args) {
 
         BinanceReceiver binanceReceiver = BinanceReceiver.getInstance();
-//        List<String> pairs = Arrays.asList("trxeth", "eoseth");
         for(int i=0; i < pairs.size(); i++)
             binanceReceiver.getAggregatedTradeStream(pairs.get(i));
 
