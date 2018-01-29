@@ -48,17 +48,19 @@ public class CoreNLP {
     private static InputStreamFactory inputStreamFactory;
     private static WhitespaceTokenizer tokenizer = WhitespaceTokenizer.INSTANCE;
     private static StanfordCoreNLP pipeline;
+    private static Properties properties = new Properties();
 
 
     public static CoreNLP getInstance() {
         try {
+            loadProps();
             initModels();
             stopWords = new HashSet<>(IOUtils.readLines(inputStreamStopWords, "UTF-8"));
             trainModel();
         } catch (IOException ex) {
             logger.info("Exception occur while trying to initialize ");
         }
-        pipeline = new StanfordCoreNLP(getProperties());
+        pipeline = new StanfordCoreNLP(setPipelineProperties());
         personFinder = new NameFinderME(personModel);
         locationFinder = new NameFinderME(locationModel);
         organizationFinder = new NameFinderME(organizationModel);
@@ -74,7 +76,16 @@ public class CoreNLP {
         return INSTANCE;
     }
 
-    private static Properties getProperties() {
+    private static void loadProps(){
+        InputStream inputStream = CoreNLP.class.getClassLoader().getResourceAsStream("corenlp.properties");
+        try {
+            properties.load(inputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Properties setPipelineProperties() {
         Properties props = new Properties();
         props.setProperty("annotators", "tokenize, ssplit, parse, sentiment");
         return props;
@@ -82,21 +93,13 @@ public class CoreNLP {
 
     private static void initModels() {
         try {
-            inputStreamStopWords = new FileInputStream(new File("")
-                    .getAbsolutePath() + "/src/main/resources/stopwords.txt");
-            personModel = new TokenNameFinderModel(new FileInputStream(new File("")
-                    .getAbsolutePath() + "/src/main/resources/models/en-ner-person.bin"));
-            locationModel = new TokenNameFinderModel(new FileInputStream(new File("")
-                    .getAbsolutePath() + "/src/main/resources/models/en-ner-location.bin"));
-            organizationModel = new TokenNameFinderModel(new FileInputStream(new File("")
-                    .getAbsolutePath() + "/src/main/resources/models/en-ner-organization.bin"));
-            chunkerModel = new ChunkerModel(new FileInputStream(new File("")
-                    .getAbsolutePath() + "/src/main/resources/models/en-chunker.bin"));
-            posModel = new POSModel(new FileInputStream(new File("")
-                    .getAbsolutePath() + "/src/main/resources/models/en-pos-maxent.bin"));
-            inputStreamFactory = new MarkableFileInputStreamFactory(
-                    new File("/home/zealot/IdeaProjects/" +
-                            "spark_twitter_streaming/src/main/resources/training/training_tweets.txt"));
+            inputStreamStopWords = new FileInputStream(properties.getProperty("corenlp.stopwords"));
+            personModel = new TokenNameFinderModel(new FileInputStream(properties.getProperty("corenlp.person.model")));
+            locationModel = new TokenNameFinderModel(new FileInputStream(properties.getProperty("corenlp.location.model")));
+            organizationModel = new TokenNameFinderModel(new FileInputStream(properties.getProperty("corenlp.organization.model")));
+            chunkerModel = new ChunkerModel(new FileInputStream(properties.getProperty("corenlp.chunker.model")));
+            posModel = new POSModel(new FileInputStream(properties.getProperty("corenlp.pos.maxent.model")));
+            inputStreamFactory = new MarkableFileInputStreamFactory(new File(properties.getProperty("corenlp.training.tweets")));
         } catch (IOException ex) {
             ex.printStackTrace();
             ex.getMessage();

@@ -27,7 +27,8 @@ public class Processing implements Serializable {
     }
 
     public static Document process(Document document) {
-        if (document.getProcess()) coreNLP.processWithAnalytics(document.getModel());
+        if (document.getProcess())
+            coreNLP.processWithAnalytics(document.getModel());
         return document;
     }
 }
