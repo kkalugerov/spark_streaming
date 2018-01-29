@@ -13,19 +13,12 @@ import opennlp.tools.chunker.ChunkerModel;
 import opennlp.tools.doccat.*;
 import opennlp.tools.namefind.NameFinderME;
 import opennlp.tools.namefind.TokenNameFinderModel;
-
 import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTagger;
 import opennlp.tools.postag.POSTaggerME;
 import opennlp.tools.tokenize.WhitespaceTokenizer;
 import opennlp.tools.util.*;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.StringUtils;
@@ -114,6 +107,12 @@ public class CoreNLP {
     public static void trainModel() throws IOException {
         ObjectStream<String> lineStream = new PlainTextByLineStream(inputStreamFactory, "UTF-8");
         ObjectStream<DocumentSample> sampleStream = new DocumentSampleStream(lineStream);
+        TrainingParameters trainingParameters = new TrainingParameters();
+        //training parameters , but with default params gives best results
+        int cutoff = 15;
+        int trainingIterations = 300;
+        trainingParameters.put("Cutoff", cutoff);
+        trainingParameters.put("Iterations", trainingIterations);
         doccatModel = DocumentCategorizerME
                 .train("en", sampleStream, TrainingParameters.defaultParams(), new DoccatFactory());
     }
@@ -269,9 +268,7 @@ public class CoreNLP {
             }
         }
 
-
         sentimentSum += mainSentiment;
-
 
         double average = sentimentSum / text.length();
         String sentiment;
@@ -284,72 +281,10 @@ public class CoreNLP {
         System.out.println(mainSentiment);
     }
 
-    public static List<String> callSolr() {
-        SolrClient client = new HttpSolrClient("http://hs1.yatrus.com:8983/solr/Twitter3");
-        String queryStr = "SentimentDocumentString:POSITIVE";
-        SolrQuery query = new SolrQuery(queryStr);
-        query.setFilterQueries("Language:en");
-        query.setSort("timestamp", SolrQuery.ORDER.desc);
-        query.setRows(300);
-        query.setFields("Title");
-        SolrDocumentList result;
-        List<String> positiveTitles = new ArrayList<>();
-        List<String> newList = new ArrayList<>();
-
-        try {
-            result = client.query(query).getResults();
-            for (int i = 0; i < result.size(); i++) {
-                positiveTitles.add(result.get(i).entrySet().iterator().next().getValue().toString());
-                String newTitle = null;
-                for(String title : positiveTitles){
-                    newTitle = String.format("%s %s", "2", title);
-                }
-                newList.add(newTitle);
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        try {
-            FileUtils.writeLines(new File("/home/zealot/IdeaProjects/spark_twitter_streaming/src/main/resources/training/positive_tweets.txt"),
-                    newList);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return newList;
-    }
 
     public static void main(String[] args) {
 
-        callSolr();
 
-
-//        CoreNLP coreNLP = CoreNLP.getInstance();
-//
-//        List<String> negativeSentences = Arrays.asList("The painting is ugly, will return it tomorrow...",
-//                "Bad news, my flight just got cancelled.","I lost my keys","He killed our good mood",
-//                "I feel bad for what I did","I hate to say goodbye","Had a bad evening, need urgently a beer.");
-//
-//        List<String> positiveSentences = Arrays.asList("Watching a nice movie", "One of the best soccer games, worth seeing it",
-//                "Very tasty, not only for vegetarians","On today's show we met Angela, a woman with an amazing story",
-//                "Love the new book I reveived for Christmas","Thank you Molly making this possible");
-//
-//        List<String> neutralSentences = Arrays.asList("Too early to travel..need a coffee",
-//                "I put on weight again","On a trip to Iceland","I set my new year's resolution","Sorry mate, there is no more room for you",
-//                "Nobody to ask about directions","I fell in love again");
-//
-//        for (String sentence : negativeSentences)
-//            System.out.println(coreNLP.classify(sentence));
-//
-//        System.out.println();
-//
-//        for(String sent : positiveSentences)
-//            System.out.println(coreNLP.classify(sent));
-//
-//        System.out.println();
-//
-//        for(String sent2 : neutralSentences)
-//            System.out.println(coreNLP.classify(sent2));
     }
 
 }
