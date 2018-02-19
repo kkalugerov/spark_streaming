@@ -209,7 +209,7 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
                         Status status = null;
                         try {
                             status = TwitterObjectFactory.createStatus(rawString);
-                            logger.info("CREATED_AT: " + status.getCreatedAt());
+//                            logger.info("CREATED_AT: " + status.getCreatedAt());
 
                         } catch (TwitterException twe) {
                             logger.error("TwitterException: " + twe);

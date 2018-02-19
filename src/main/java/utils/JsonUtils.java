@@ -17,7 +17,7 @@ public class JsonUtils {
 
         documents.stream().forEach(document ->
         {
-            if (document.getProcess())
+            if (document.getModel().getLang().equalsIgnoreCase("en"))
                 try {
                     index.put("Content",document.getModel().getContent());
                     index.put("RawJson", document.getModel().getRawJson());

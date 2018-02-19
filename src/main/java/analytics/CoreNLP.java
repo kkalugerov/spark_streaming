@@ -19,9 +19,10 @@ import opennlp.tools.postag.POSTaggerME;
 import opennlp.tools.tokenize.WhitespaceTokenizer;
 import opennlp.tools.util.*;
 import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import utils.StringUtils;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.util.Version;
 
 import java.io.*;
 import java.util.*;
@@ -29,7 +30,8 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("unchecked")
 public class CoreNLP {
-    private static final Logger logger = LoggerFactory.getLogger(CoreNLP.class);
+    private static final org.apache.logging.log4j.Logger logger = org.apache.logging.log4j.LogManager.getLogger(CoreNLP.class);
+
     private static CoreNLP INSTANCE;
     private static NameFinderME personFinder;
     private static NameFinderME locationFinder;
@@ -48,8 +50,8 @@ public class CoreNLP {
     private static InputStreamFactory inputStreamFactory;
     private static WhitespaceTokenizer tokenizer = WhitespaceTokenizer.INSTANCE;
     private static StanfordCoreNLP pipeline;
+    private static StemmAnalyzer analyzer;
     private static Properties properties = new Properties();
-
 
     public static CoreNLP getInstance() {
         try {
@@ -67,6 +69,7 @@ public class CoreNLP {
         chunker = new ChunkerME(chunkerModel);
         posTagger = new POSTaggerME(posModel);
         categorizer = new DocumentCategorizerME(doccatModel);
+        analyzer = new StemmAnalyzer(Version.LATEST, stopWords);
         if (INSTANCE == null) {
             synchronized (CoreNLP.class) {
                 INSTANCE = new CoreNLP();
@@ -76,11 +79,13 @@ public class CoreNLP {
         return INSTANCE;
     }
 
-    private static void loadProps(){
+    private static void loadProps() {
         InputStream inputStream = CoreNLP.class.getClassLoader().getResourceAsStream("corenlp.properties");
         try {
             properties.load(inputStream);
+            logger.info("Properties loaded successful ! ");
         } catch (IOException e) {
+            logger.error("Exception occur while trying to load props... " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -94,9 +99,10 @@ public class CoreNLP {
             chunkerModel = new ChunkerModel(new FileInputStream(properties.getProperty("corenlp.chunker.model")));
             posModel = new POSModel(new FileInputStream(properties.getProperty("corenlp.pos.maxent.model")));
             inputStreamFactory = new MarkableFileInputStreamFactory(new File(properties.getProperty("corenlp.training.tweets")));
+            logger.info("Models initialized successful ! ");
         } catch (IOException ex) {
             ex.printStackTrace();
-            ex.getMessage();
+            logger.info("Exception occur while trying to initialize models... " + ex.getMessage());
             ex.getCause();
         }
     }
@@ -131,6 +137,8 @@ public class CoreNLP {
             sentiment = "NEGATIVE";
         else
             sentiment = "NEUTRAL";
+
+        logger.info("Sentiment classified as : " + sentiment);
 
         return sentiment;
     }
@@ -211,7 +219,8 @@ public class CoreNLP {
 
         Set<String> cashtags = tokens.stream()
                 .distinct()
-                .filter(token -> token.startsWith("$") && !StringUtils.isNumeric(token.substring(1)) && !token.contains("."))
+                .filter(token -> token.startsWith("$") &&
+                        !StringUtils.isNumeric(token.substring(1)) && !token.contains("."))
                 .collect(Collectors.toSet());
 
         Set<String> mentions = tokens.stream()
@@ -223,10 +232,39 @@ public class CoreNLP {
         });
 
         extractedCashTagHashTagsAndMentions.put("@", mentions);
+        logger.info("Extracted mentions : " + mentions);
         extractedCashTagHashTagsAndMentions.put("#", hashtags);
+        logger.info("Extracted hashtags : " + hashtags);
         extractedCashTagHashTagsAndMentions.put("$", cashtags);
+        logger.info("Extracted hashtags : " + cashtags);
 
         return extractedCashTagHashTagsAndMentions;
+    }
+
+    private Set<String> generateKeywords(String text) {
+        Set<String> keywords = new HashSet<>();
+        TokenStream stream = analyzer.tokenStreams("contents", new StringReader(text));
+        try {
+            stream.reset();
+            while (stream.incrementToken()) {
+                String kw = stream.getAttribute(CharTermAttribute.class).toString();
+                if (kw.length() > 3)
+                    keywords.add(kw);
+            }
+            logger.info(keywords.toString());
+        } catch (Exception ex) {
+
+        } finally {
+
+            try {
+                stream.end();
+                stream.close();
+            } catch (Exception e) {
+
+            }
+        }
+        logger.info("Generated keywords from content : " + keywords);
+        return keywords;
     }
 
     public void processWithAnalytics(Model model) {
@@ -241,6 +279,7 @@ public class CoreNLP {
         Object mentions = cashtagsAndhastags.values().toArray()[0];
         Object hashtags = cashtagsAndhastags.values().toArray()[1];
         Object cashtags = cashtagsAndhastags.values().toArray()[2];
+        model.setKeywords(generateKeywords(content));
         model.setSentiment(classify(clearContent));
         model.setPersons(findNEPerson(clearContent));
         model.setOrganizations(findNEOrganization(clearContent));
@@ -250,6 +289,7 @@ public class CoreNLP {
         model.setMentions((Set<String>) mentions);
 
     }
+
 
     public static void getSentiment(String text) {
 

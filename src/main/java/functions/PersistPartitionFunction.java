@@ -1,5 +1,6 @@
 package functions;
 
+import elasticsearch.ElasticConnector;
 import model.Document;
 import org.apache.spark.api.java.function.VoidFunction;
 import processing.Processing;
@@ -7,9 +8,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import static elasticsearch.ElasticConnector.toElastic;
 
 public class PersistPartitionFunction implements VoidFunction<Iterator<Document>> {
+    private ElasticConnector elasticConnector = ElasticConnector.getInstance();
 
     @Override
     public void call(Iterator<Document> documentIterator) {
@@ -17,7 +18,7 @@ public class PersistPartitionFunction implements VoidFunction<Iterator<Document>
         try {
             while (documentIterator.hasNext())
                 documents.add(Processing.getInstance().process(documentIterator.next()));
-            toElastic(documents);
+            elasticConnector.toElastic(documents);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
