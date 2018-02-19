@@ -4,6 +4,7 @@ import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.BinanceApiWebSocketClient;
 import com.binance.api.client.domain.event.DepthEvent;
+import com.binance.api.client.domain.market.CandlestickInterval;
 import com.binance.api.client.domain.market.TickerStatistics;
 import utils.TimeUtils;
 
@@ -18,54 +19,48 @@ import java.util.Properties;
 
 public class BinanceReceiver {
 
-
     private static BinanceApiWebSocketClient webSocketClient;
     private static BinanceApiRestClient apiRestClient;
     private static BinanceReceiver INSTANCE;
     private static String apiKey;
     private static String apiSecret;
-    private List<BigDecimal> prices = new ArrayList<>();
     private BigDecimal price;
     private String timeOfEvent;
     private static Properties properties = new Properties();
     private static List<String> pairs;
 
-    public BinanceReceiver(){};
+    public BinanceReceiver() {
+    }
 
     public static BinanceReceiver getInstance() {
         loadProps();
         initProps();
         initClients();
         if (INSTANCE == null)
-        synchronized (BinanceReceiver.class) {
+            synchronized (BinanceReceiver.class) {
                 INSTANCE = new BinanceReceiver();
             }
         return INSTANCE;
     }
 
-    private static void loadProps(){
+    private static void loadProps() {
         InputStream inputStream = BinanceReceiver.class.getClassLoader().getResourceAsStream("binance.properties");
-        try{
+        try {
             properties.load(inputStream);
-        }catch (IOException ex){
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
+
     private static void initClients() {
         apiRestClient = BinanceApiClientFactory.newInstance(apiKey, apiSecret).newRestClient();
         webSocketClient = BinanceApiClientFactory.newInstance(apiKey, apiSecret).newWebSocketClient();
     }
 
-    private static void initProps(){
+    private static void initProps() {
         pairs = Arrays.asList(properties.getProperty("binance.pairs").split(","));
         apiKey = properties.getProperty("binance.api_key");
         apiSecret = properties.getProperty("binance.api_secret");
-
-    }
-
-    private static void initClients(String apikey, String apiSecret) {
-        apiRestClient = BinanceApiClientFactory.newInstance(apikey, apiSecret).newRestClient();
-        webSocketClient = BinanceApiClientFactory.newInstance(apikey, apiSecret).newWebSocketClient();
     }
 
 
@@ -75,29 +70,41 @@ public class BinanceReceiver {
                 response -> {
                     timeOfEvent = TimeUtils.millisToHour(response.getEventTime());
                     price = new BigDecimal(response.getPrice());
-                    prices.add(price);
                     getPrice(response.getSymbol());
                 });
     }
 
+    // get streaming candlesticks data for particular pair
+    // possible values for interval are - ONE_MINUTE, THREE_MINUTES, FIVE_MINUTES ,
+    // FIFTEEN_MINUTES, HALF_HOURLY, HOURLY, TWO_HOURLY, FOUR_HOURLY, SIX_HOURLY,
+    // EIGHT_HOURLY, TWELVE_HOURLY, DAILY, THREE_DAILY, WEEKLY, MONTHLY
+    public void getCandleSticks(String pair, String interval) {
+        webSocketClient.onCandlestickEvent(pair, CandlestickInterval.valueOf(interval),
+                response -> System.out.println(String.format("The highest candlestick for the desire interval %s : %s ",
+                        interval,response.getHigh())));
+    }
 
     public void getPrice(String pair) {
         System.out.println(String.format("Price for pair %s at %s is : %.8f ", pair, timeOfEvent, price));
     }
 
+    // get statistics for lowest and highest price per currency pair for last 24 hours
     public void get24HrPriceStatistics(String currencyPair) {
-        TickerStatistics tickerStatistics = apiRestClient.get24HrPriceStatistics(currencyPair);
-        System.out.println(String.format("Highest price : %s ", tickerStatistics.getHighPrice()));
-        System.out.println(String.format("Lowest price for last 24 hours : %s ", tickerStatistics.getLowPrice()));
-        System.out.println(String.format("%s", tickerStatistics.getWeightedAvgPrice()));
+        TickerStatistics tickerStatistics = apiRestClient.get24HrPriceStatistics(currencyPair.toUpperCase());
+        System.out.println(String.format("Highest price for last 24 hours for %s : %s ",
+                currencyPair, tickerStatistics.getHighPrice()));
+        System.out.println(String.format("Lowest price for last 24 hours for %s : %s ",
+                currencyPair, tickerStatistics.getLowPrice()));
+        System.out.println(String.format("Average price for last 24 hours for %s : %s",
+                currencyPair,tickerStatistics.getWeightedAvgPrice()));
     }
 
 
     public static void main(String[] args) {
 
-        BinanceReceiver binanceReceiver = BinanceReceiver.getInstance();
-        for(int i=0; i < pairs.size(); i++)
-            binanceReceiver.getAggregatedTradeStream(pairs.get(i));
+//        BinanceReceiver binanceReceiver = BinanceReceiver.getInstance();
+//        for (int i = 0; i < pairs.size(); i++)
+//            binanceReceiver.getCandleSticks(pairs.get(i),"DAILY");
 
 
 //        binanceReceiver.getAggregatedTradeStream("ethbtc");

@@ -26,8 +26,9 @@ public class Processing implements Serializable {
         return INSTANCE;
     }
 
-    public static Document process(Document document) {
-        if (document.getProcess())
+    public Document process(Document document) {
+        boolean process = document.getProcess();
+        if (process)
             coreNLP.processWithAnalytics(document.getModel());
         return document;
     }

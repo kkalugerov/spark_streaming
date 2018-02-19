@@ -15,6 +15,7 @@ public @Data class Model implements Serializable {
     private String sentiment;
     private String content;
     private String lang;
+    private String origin;
     private List<String> keywords;
     private Set<String> locations = new HashSet<>();
     private Set<String> hashtags = new HashSet<>();

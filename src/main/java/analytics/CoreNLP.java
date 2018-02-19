@@ -85,12 +85,6 @@ public class CoreNLP {
         }
     }
 
-    private static Properties setPipelineProperties() {
-        Properties props = new Properties();
-        props.setProperty("annotators", "tokenize, ssplit, parse, sentiment");
-        return props;
-    }
-
     private static void initModels() {
         try {
             inputStreamStopWords = new FileInputStream(properties.getProperty("corenlp.stopwords"));
@@ -105,6 +99,12 @@ public class CoreNLP {
             ex.getMessage();
             ex.getCause();
         }
+    }
+
+    private static Properties setPipelineProperties() {
+        Properties props = new Properties();
+        props.setProperty("annotators", "tokenize, ssplit, parse, sentiment");
+        return props;
     }
 
     public static void trainModel() throws IOException {
@@ -199,7 +199,7 @@ public class CoreNLP {
 
     }
 
-    private Map<String, Set<String>> extractCashTagHashTagAndMentions(List<String> tokens) {
+    private Map<String, Set<String>> extractCashAndHashTagAndMentions(List<String> tokens) {
         Map<String, Set<String>> extractedCashTagHashTagsAndMentions = new HashMap<>();
 
         Set<String> hashtags = tokens.stream()
@@ -237,7 +237,7 @@ public class CoreNLP {
             clearContent = content.replaceAll("\\s+" + word + "\\s+", " ");
 
         Map<String, Set<String>> cashtagsAndhastags =
-                extractCashTagHashTagAndMentions(Arrays.asList(tokenizer.tokenize(clearContent)));
+                extractCashAndHashTagAndMentions(Arrays.asList(tokenizer.tokenize(clearContent)));
         Object mentions = cashtagsAndhastags.values().toArray()[0];
         Object hashtags = cashtagsAndhastags.values().toArray()[1];
         Object cashtags = cashtagsAndhastags.values().toArray()[2];
