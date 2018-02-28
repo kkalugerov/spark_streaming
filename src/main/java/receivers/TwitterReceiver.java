@@ -13,9 +13,6 @@ import java.util.*;
 
 public class TwitterReceiver<T> extends MainReceiver<T> {
 
-    private double SPAM_THRESHOLD; // Threshold for a tweet's individual spam score
-    private final String ORIGIN = "twitter";
-    private final String SOURCE = "twitter";
     private final Properties properties;
     private final Authorization auth;
     private final long[] follow;
@@ -39,13 +36,8 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
             "Standoff", "SWAT", "Screening", "Lockdown", "Bomb", "Crash", "Looting", "Riot", "Emergency Landing",
             "Pipe bomb", "Incident"};
 
-    // List of most commonly used words in spam and scam messages and emails
-    private String[] spamWordsAndPhrases;
-    private Set<String> spamExcludeWordsAndPhrases = new HashSet<>();
 
     private volatile TwitterStream twitterStream;
-    private String project;
-    private List<String> languages;
     private String identity = "Unknown";
 
     private final org.apache.logging.log4j.Logger logger = LogManager.getLogger(TwitterReceiver.class);
@@ -65,8 +57,6 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
 
         this.properties = prop;
         this.identity = identity;
-        this.project = project;
-
 
         if (prop.getProperty("restart.after") != null && !prop.getProperty("restart.after").isEmpty()) {
             try {
@@ -77,15 +67,6 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
             }
         }
 
-        if (prop.getProperty("twitter.spam.threshold") != null && !prop.getProperty("twitter.spam.threshold").isEmpty()) {
-            try {
-                SPAM_THRESHOLD = Double.parseDouble(prop.getProperty("twitter.spam.threshold"));
-            } catch (NumberFormatException e) {
-                logger.error("Cannot parse to Double twitter.spam.threshold: " + prop.getProperty("twitter.spam.threshold"));
-            }
-        }
-        logger.info("SPAM_THRESHOLD: " + SPAM_THRESHOLD);
-
         if (prop.getProperty("twitter.min.followers") != null && !prop.getProperty("twitter.min.followers").isEmpty()) {
             try {
                 minFollowers = Integer.parseInt(prop.getProperty("twitter.min.followers"));
@@ -94,46 +75,6 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
             }
         }
         logger.info("minFollowers: " + minFollowers);
-
-        if (prop.getProperty("twitter.languages") != null && !prop.getProperty("twitter.languages").isEmpty()) {
-            languages = Arrays.asList(prop.getProperty("twitter.languages").toLowerCase().split(","));
-        }
-
-        if (prop.getProperty("spam.words") != null && !prop.getProperty("spam.words").isEmpty()) {
-            spamWordsAndPhrases = prop.getProperty("spam.words").toLowerCase().split(",");
-        }
-        logger.info("SPAM_WORDS: " + Arrays.asList(spamWordsAndPhrases));
-
-        if (prop.getProperty("spam.exclude.words") != null && !prop.getProperty("spam.exclude.words").isEmpty()) {
-            spamExcludeWordsAndPhrases.addAll(Arrays.asList(prop.getProperty("spam.exclude.words").toLowerCase().split(",")));
-        } else {
-            spamExcludeWordsAndPhrases.addAll(Arrays.asList("ahole", "arsch", "asshole", "bagina", "basterd",
-                    "be otch", "beatmymeat", "beatoff", "biatch", "bitchin'", "bitching", "bullshit", "bung",
-                    "bunghole", "butcrack", "butt sex", "butterflybutt", "butthole", "buttsex", "butt-sex",
-                    "caca", "ceemen", "cherry popper", "chienne", "chier", "circlejerk", "clit", "cmorebutt",
-                    "cohones", "cojones", "come box", "comeonrideit", "cum", "cunni", "cunnilingus", "cunny", "cunt",
-                    "cyberme", "damn", "damned", "dickhead", "dildo", "dipshit", "doggystyle", "duelarsing", "eat me",
-                    "efilnkufecin", "enculeur", "enima", "f*ck", "fart", "felletio", "f'in", "f'ing", "fingerme", "fkg",
-                    "freakin'", "freaking", "fuck", "fucked", "fucker", "fuckin'", "fucking", "gangbang", "gethead",
-                    "getting laid", "giuemeabj", "give head", "give me head", "giveabj", "givebj", "gizz", "godamn",
-                    "goddam", "goddammit", "goddamn", "goodhead", "hardon", "hctib", "herpees", "herpes", "highon",
-                    "himen", "horney", "horny", "hotchat", "hugehooters", "hugetit", "humper", "hyman", "i pee freely",
-                    "ieatm", "ifintermyself", "ilvtofkwthu", "iplaywithmyself", "ivegotabigone", "ivegotahugeone",
-                    "jack me", "jack off", "jackme", "jackoff", "jerk off", "jerkme", "jerkoff", "jiz", "jizm",
-                    "jodegas", "kcuf", "kefe", "kinki", "kike", "kock", "kunt", "kyke", "letscyber", "likmydic",
-                    "master ba", "masterbate", "mastrbater", "merde", "mikehock", "mikerotch", "motherfucker",
-                    "muff", "mussilini", "nakid", "pee", "pelotas", "phuck", "phyllus", "piss", "pistoff", "poontang",
-                    "poop", "poopoo", "porn", "pouss", "pusee", "ritard", "schit", "schlong", "schmuk", "shit",
-                    "shitting", "shitty", "shlong", "shmuck", "shmuk", "sifilis", "sissy", "sitonmyface", "skrotum",
-                    "slut", "spankurbutt", "ux", "tard", "teetz", "tetons", "titie", "turd", "twaat", "twat",
-                    "vibrater", "wuss", "wussy", "anal", "creampie", "orgasm", "porn", "blowjob", "bukkake",
-                    "creampie", "cuckold", "cumshots", "gangbang", "handjob", "orgasm", "orgy", "porno",
-                    "threesome", "cum", "cumshot", "dildo", "fingering", "fisting", "gangbang", "gape", "squirt",
-                    "hentai", "asshole", "clit", "nipples", "pussy lips", "cunt", "cock docking", "cock stuffing",
-                    "cock sucking", "deepthroat", "doggystyle", "facial cumshot", "facefuck", "gloryhole",
-                    "jerking off", "facesitting", "wank", "slut", "vibrator", "squirting", "strapon porn"));
-        }
-        logger.info("SPAM_WORDS_EXCLUDE: " + spamExcludeWordsAndPhrases);
 
         if (prop.getProperty("drain.content.minKeywords") != null && prop.getProperty("drain.content.keywords")
                 != null && !prop.getProperty("drain.content.keywords").isEmpty()) {
@@ -209,7 +150,6 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
                         Status status = null;
                         try {
                             status = TwitterObjectFactory.createStatus(rawString);
-//                            logger.info("CREATED_AT: " + status.getCreatedAt());
 
                         } catch (TwitterException twe) {
                             logger.error("TwitterException: " + twe);
@@ -242,8 +182,6 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
 
             else newTwitterStream.sample();
 
-            logger.info("Twitter receiver info: \nuse filter = " + useFilter + " \nFollows: \n");
-
             if (follow == null) logger.info("follow: null");
 
             else Arrays.asList(follow).forEach(logger::info);
@@ -273,76 +211,4 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
         twitterStream = newTwitterStream;
     }
 
-    private boolean filterLang(String lang) {
-        if (languages.contains(lang)) return true;
-
-        if (lang.contains("-")) {
-            String[] langVariants = lang.split("-");
-            return languages.contains(langVariants[0]);
-        }
-
-        return false;
-    }
-
-    private boolean processTweet(String content) {
-        if (content.length() < 10 || containsPorn(content))
-            return false;
-        else return (getSpamScore(content) > SPAM_THRESHOLD);
-    }
-
-    private int spamWordsCheck(String tweet) {
-
-        int spamWordsCount = 0;
-        for (String spamWord : spamWordsAndPhrases) {
-            if (tweet.toLowerCase().contains(spamWord)) {
-                spamWordsCount++;
-            }
-        }
-        return spamWordsCount;
-    }
-
-    private boolean containsPorn(String content) {
-        List<String> contentSplit = Arrays.asList(content.split(" "));
-        for (String token : contentSplit) {
-            if (spamExcludeWordsAndPhrases.contains(token.toLowerCase().trim())) {
-                logger.info("REJECTED_CONTENT: " + token);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Calculates the spal score for the tweet.
-     */
-    private double getSpamScore(String content) {
-        int userMentions = 0;
-        int hashtagsCount = 0;
-        int webLinksCount = 0;
-        int spamWordsCount = spamWordsCheck(content); // Extra iteration over the spam words in Utils list
-        int nonAlphaCount = 0;
-        List<String> contentSplit = Arrays.asList(content.split(" "));
-        for (String token : contentSplit) {
-            if (token.startsWith("@") && token.length() > 2) {
-                userMentions++;
-                continue;
-            }
-            if (token.startsWith("#")) {
-                hashtagsCount++;
-                continue;
-            }
-            if (token.startsWith("http")) {
-                webLinksCount++;
-                continue;
-            }
-            if (!token.matches("[a-zA-Z0-9'-,.?!:;]+")) {
-                nonAlphaCount++;
-            }
-        }
-        double finalScore = ((double) (userMentions + hashtagsCount + webLinksCount + spamWordsCount + nonAlphaCount)) / contentSplit.size();
-        finalScore = 1.0d - finalScore;
-
-        logger.info("SPAM_SCORE: " + String.format("%.2f", finalScore) + " " + content);
-        return finalScore;
-    }
 }
