@@ -2,6 +2,7 @@ package processing;
 
 import analytics.CoreNLP;
 import model.Document;
+
 import java.io.Serializable;
 
 public class Processing implements Serializable {

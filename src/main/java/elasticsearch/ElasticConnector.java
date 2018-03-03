@@ -35,7 +35,7 @@ public class ElasticConnector implements Serializable {
         try {
             loadProps();
             init();
-        }catch (Exception ex){
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
         if (INSTANCE == null) {
@@ -47,12 +47,14 @@ public class ElasticConnector implements Serializable {
     }
 
     public static synchronized void toElastic(List<Document> documents) {
+        loadProps();
+        init();
         URL obj;
         HttpURLConnection conn;
         BufferedReader br;
         StringBuilder outputBuilder;
         try {
-            obj = new URL("http://"+ host +":" + port +  "/twitter/test2");
+            obj = new URL("http://" + host + ":" + port + "/twitter/test3");
 
             conn = (HttpURLConnection) obj.openConnection();
             conn.setDoOutput(true);

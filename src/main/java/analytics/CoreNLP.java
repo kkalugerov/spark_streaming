@@ -183,9 +183,12 @@ public class CoreNLP {
     public Set<String> findNEOrganization(String content) {
         Set<String> organizations = new HashSet<>();
         String[] tokens = tokenizer.tokenize(content);
+        String[] namedEntities = new String[0];
+        Span[] nameSpans;
         if (tokens.length > 0) {
-            Span[] nameSpans = organizationFinder.find(tokens);
-            String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
+            nameSpans = organizationFinder.find(tokens);
+            if (nameSpans.length > 0)
+                namedEntities = (Span.spansToStrings(nameSpans, tokens));
             organizations.addAll(Arrays.asList(namedEntities));
             return organizations;
         }
