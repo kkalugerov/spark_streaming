@@ -13,7 +13,7 @@ public class Stream {
     private JavaDStream stream;
     private JavaStreamingContext context;
 
-    public Stream(JavaStreamingContext context) {
+    private Stream(JavaStreamingContext context) {
         this.context = context;
     }
 
@@ -32,7 +32,8 @@ public class Stream {
 
     public void start(){
         try{
-            stream.window(new Duration(2000),new Duration(6000)).foreachRDD(new PersistForEachRDD());
+            stream.window(new Duration(2000),new Duration(6000))
+                    .foreachRDD(new PersistForEachRDD());
         }catch (Exception ex){
             ex.printStackTrace();
         }

@@ -165,7 +165,10 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
                         if (status.getText().isEmpty() || status.getText() == null) return;
                         else {
                             Document document = toDocument(status, rawString);
-                            store((T) document);
+                            if(document.getProcess())
+                                store((T) document);
+                            else
+                                return;
                         }
                     } catch (Exception e) {
                         logger.info(e.getStackTrace());

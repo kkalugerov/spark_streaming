@@ -207,8 +207,9 @@ public class CoreNLP {
 
     }
 
-    private Map<String, Set<String>> extractCashAndHashTagAndMentions(List<String> tokens) {
+    private Map<String, Set<String>> extractCashAndHashTagAndMentions(String content) {
         Map<String, Set<String>> extractedCashTagHashTagsAndMentions = new HashMap<>();
+        List<String> tokens = Arrays.asList(content.split(" "));
 
         Set<String> hashtags = tokens.stream()
                 .distinct()
@@ -269,13 +270,13 @@ public class CoreNLP {
 
     public void processWithAnalytics(Model model) {
         String content = model.getContent();
-        content = StringUtils.removeURLs(content).replaceAll("[^\\w\\s]", "");
+//        content = StringUtils.removeURLs(content).replaceAll("[^\\w\\s]", "");
         String clearContent = "";
         for (String word : stopWords)
             clearContent = content.replaceAll("\\s+" + word + "\\s+", " ");
 
         Map<String, Set<String>> cashtagsAndhastags =
-                extractCashAndHashTagAndMentions(Arrays.asList(tokenizer.tokenize(clearContent)));
+                extractCashAndHashTagAndMentions(content);
         Object mentions = cashtagsAndhastags.values().toArray()[0];
         Object hashtags = cashtagsAndhastags.values().toArray()[1];
         Object cashtags = cashtagsAndhastags.values().toArray()[2];

@@ -9,7 +9,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Properties;
 
-import static utils.JsonUtils.toJson;
+import static utils.JsonUtils.toIndex;
 
 public class ElasticConnector implements Serializable {
     private static Properties properties = new Properties();
@@ -50,21 +50,22 @@ public class ElasticConnector implements Serializable {
         URL obj;
         HttpURLConnection conn;
         BufferedReader br;
+        StringBuilder outputBuilder;
         try {
-            obj = new URL("http://"+ host +":" + port + "/twitter/test2");
+            obj = new URL("http://"+ host +":" + port +  "/twitter/test2");
 
             conn = (HttpURLConnection) obj.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
             try (OutputStreamWriter out = new OutputStreamWriter(conn.getOutputStream())) {
-                out.write(toJson(documents).toString());
+                out.write(toIndex(documents).toString());
             }
 
             br = new BufferedReader(new InputStreamReader(
                     (conn.getInputStream())));
 
             String output;
-            StringBuilder outputBuilder = new StringBuilder();
+            outputBuilder = new StringBuilder();
             while ((output = br.readLine()) != null) {
                 outputBuilder.append(output);
             }

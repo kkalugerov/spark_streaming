@@ -8,15 +8,16 @@ import java.util.List;
 
 public class JsonUtils {
 
-    private static JSONObject index = new JSONObject();
+    private static JSONObject index;
 
-    public static JSONObject toJson(List<Document> documents) {
+    public static JSONObject toIndex(List<Document> documents) {
 
         if(documents.isEmpty())
             return new JSONObject();
 
-        documents.stream().forEach(document ->
+        documents.forEach(document ->
         {
+            index = new JSONObject();
             if (document.getModel().getLang().equalsIgnoreCase("en"))
                 try {
                     index.put("Content",document.getModel().getContent());

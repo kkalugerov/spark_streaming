@@ -6,7 +6,7 @@ import java.io.Serializable;
 
 public class Document implements Serializable {
     private Model model;
-    private boolean process;
+    private boolean process = false;
 
     public Document() {
     }
