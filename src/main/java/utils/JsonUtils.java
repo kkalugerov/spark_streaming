@@ -1,6 +1,7 @@
 package utils;
 
 import model.Document;
+import model.Model;
 import org.apache.logging.log4j.LogManager;
 import twitter4j.JSONException;
 import twitter4j.JSONObject;
@@ -12,27 +13,26 @@ public class JsonUtils {
     private static JSONObject index;
     private static final org.apache.logging.log4j.Logger logger = LogManager.getLogger(JsonUtils.class);
 
-    public static JSONObject toIndex(List<Document> documents) {
+    public static JSONObject toIndex(List<Model> models) {
 
-        if (documents.isEmpty())
+        if (models.isEmpty())
             return new JSONObject();
 
-        documents.forEach(document ->
+        models.forEach(model ->
         {
             index = new JSONObject();
-            if (document.getModel().getLang().equalsIgnoreCase("en"))
                 try {
-                    index.put("Content", document.getModel().getContent());
-                    index.put("RawJson", document.getModel().getRawJson());
-                    index.put("Keywords", document.getModel().getKeywords());
-                    index.put("Sentiment", document.getModel().getSentiment());
-                    index.put("Hashtags", document.getModel().getHashtags());
-                    index.put("Mentions", document.getModel().getMentions());
-                    index.put("Cashtags", document.getModel().getHashtags());
-                    index.put("Locations", document.getModel().getLocations());
-                    index.put("Organizations", document.getModel().getOrganizations());
-                    index.put("Persons", document.getModel().getPersons());
-                    index.put("Lang", document.getModel().getLang());
+                    index.put("Content", model.getContent());
+                    index.put("RawJson", model.getRawJson());
+                    index.put("Keywords", model.getKeywords());
+                    index.put("Sentiment", model.getSentiment());
+                    index.put("Hashtags", model.getHashtags());
+                    index.put("Mentions", model.getMentions());
+                    index.put("Cashtags", model.getHashtags());
+                    index.put("Locations", model.getLocations());
+                    index.put("Organizations", model.getOrganizations());
+                    index.put("Persons", model.getPersons());
+                    index.put("Lang", model.getLang());
                     index.put("timestamp", new java.util.Date());
                     logger.info("Document to be stored - > " + index.toString());
                 } catch (JSONException e) {

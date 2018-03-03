@@ -2,6 +2,7 @@ package processing;
 
 import analytics.CoreNLP;
 import model.Document;
+import model.Model;
 
 import java.io.Serializable;
 
@@ -27,11 +28,10 @@ public class Processing implements Serializable {
         return INSTANCE;
     }
 
-    public Document process(Document document) {
-        boolean process = document.getProcess();
-        if (process)
-            coreNLP.processWithAnalytics(document.getModel());
-        return document;
+    public Model process(Model model) {
+
+        coreNLP.processWithAnalytics(model);
+        return model;
     }
 }
 

@@ -92,20 +92,19 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
             }
             if (track != null && Strings.isNotEmpty(track[0])) {
                 filter.track(track);
+                filter.language("en");
                 useFilter = true;
             }
 
             newTwitterStream.addListener(new RawStreamListener() {
-                private Document toDocument(Status status, String rawJson) {
+                private Model toModel(Status status, String rawJson) {
                     Model model = new Model();
 
                     model.setContent(status.getText());
                     model.setLang(status.getLang());
                     model.setRawJson(rawJson);
 
-                    if (model.getLang().equalsIgnoreCase("en"))
-                        return new Document(model, true);
-                    return new Document(model, false);
+                    return model;
                 }
 
                 @Override
@@ -133,9 +132,8 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
                         }
 
                         assert status != null;
-                        Document document = toDocument(status, rawString);
-                        if (document.getProcess())
-                            store((T) document);
+                        Model model = toModel(status, rawString);
+                        store((T) model);
 
                     } catch (Exception e) {
                         logger.info(e.getStackTrace());
@@ -160,6 +158,7 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
             if (track == null) logger.info("track: null");
 
             else Arrays.asList(track).forEach(logger::info);
+
 
             setTwitterStream(newTwitterStream);
         } catch (Exception ex) {

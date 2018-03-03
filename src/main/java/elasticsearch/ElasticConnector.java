@@ -2,6 +2,7 @@ package elasticsearch;
 
 import analytics.CoreNLP;
 import model.Document;
+import model.Model;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -46,7 +47,7 @@ public class ElasticConnector implements Serializable {
         return INSTANCE;
     }
 
-    public static synchronized void toElastic(List<Document> documents) {
+    public static synchronized void toElastic(List<Model> models) {
         loadProps();
         init();
         URL obj;
@@ -54,13 +55,13 @@ public class ElasticConnector implements Serializable {
         BufferedReader br;
         StringBuilder outputBuilder;
         try {
-            obj = new URL("http://" + host + ":" + port + "/twitter/test3");
+            obj = new URL("http://" + host + ":" + port + "/twitter/crypto_currencies");
 
             conn = (HttpURLConnection) obj.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
             try (OutputStreamWriter out = new OutputStreamWriter(conn.getOutputStream())) {
-                out.write(toIndex(documents).toString());
+                out.write(toIndex(models).toString());
             }
 
             br = new BufferedReader(new InputStreamReader(
