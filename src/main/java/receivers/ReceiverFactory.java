@@ -86,8 +86,8 @@ public class ReceiverFactory {
                     }
                 }
             }
-            receivers.add(new TwitterReceiver("TwitterReceiver#" + i, properties, auth, follow,
-                    trackStr.toArray(new String[trackStr.size()]), projects.get(i)));
+            receivers.add(new TwitterReceiver<>("TwitterReceiver#" + i, properties, auth, follow,
+                    trackStr.toArray(new String[trackStr.size()])));
         }
 
         return receivers;

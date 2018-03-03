@@ -146,12 +146,14 @@ public class CoreNLP {
 
     public Set<String> findNEPerson(String content) {
         Set<String> persons = new HashSet<>();
-        String[] tokens = tokenizer.tokenize(content);
-        if (tokens.length > 0) {
-            Span[] nameSpans = personFinder.find(tokens);
-            String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
-            persons.addAll(Arrays.asList(namedEntities));
-            return persons;
+        if(content != null && !content.isEmpty()) {
+            String[] tokens = tokenizer.tokenize(content);
+            if (tokens.length > 0) {
+                Span[] nameSpans = personFinder.find(tokens);
+                String[] namedEntities = (Span.spansToStrings(nameSpans, tokens));
+                persons.addAll(Arrays.asList(namedEntities));
+                return persons;
+            }
         }
 
         if (!persons.isEmpty())

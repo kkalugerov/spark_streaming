@@ -5,7 +5,6 @@ import model.Model;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.spark.storage.StorageLevel;
-import org.apache.spark.streaming.receiver.Receiver;
 import twitter4j.*;
 import twitter4j.auth.Authorization;
 
@@ -18,23 +17,7 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
     private final long[] follow;
     private String[] track = new String[0];
     private Integer RESTART_AFTER = 10 * 60 * 1000;// 10 min
-    private int minKeywords;
     private int minFollowers;
-    private String[] keywordsLowerCase = {"refugee", "refugees", "Terrorism", "Al Qaeda", "Terror", "Attack", "Iraq",
-            "Afghanistan", "Iran", "Pakistan", "Agro", "Environmental terrorist", "Eco terrorism", "Conventional weapon",
-            "Weapons grade", "Dirty bomb", "Enriched", "Nuclear", "Chemical weapon", "Biological weapon",
-            "Ammonium nitrate", "Improvised explosive device", "IED ", "Abu Sayyaf", "Hamas", "FARC ", "IRA ", "ETA ",
-            "Basque Separatists", "Hezbollah", "Tamil Tigers", "PLF ", "PLO ", "Car bomb", "Jihad", "Taliban",
-            "Weapons cache", "Suicide bomber", "Suicide attack", "Suspicious substance", "AQAP", "AQIM", "TTP", "Yemen",
-            "Extremism", "Somalia", "Nigeria", "Radicals", "Al-Shabaab", "Home grown", "Nationalist", "Recruitment",
-            "Fundamentalism", "Islamist", "Tamils Sri Lanka", "Assassination", "Domestic security", "Law enforcement",
-            "Authorities", "Disaster assistance", "Disaster management", "DNDO", "National preparedness", "Mitigation",
-            "Prevention", "Response", "Recovery", "Dirty bomb", "Domestic nuclear detection", "Emergency management",
-            "Emergency response", "First responder", "Homeland security", "Maritime domain awareness", "Militia",
-            "Shooting", "Shots fired", "Evacuation", "Deaths", "Hostage", "Explosion ", "Police", "DMAT",
-            "Organized crime", "Gangs", "National security", "State of emergency", "Security", "Breach", "Threat",
-            "Standoff", "SWAT", "Screening", "Lockdown", "Bomb", "Crash", "Looting", "Riot", "Emergency Landing",
-            "Pipe bomb", "Incident"};
 
 
     private volatile TwitterStream twitterStream;
@@ -43,7 +26,7 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
     private final org.apache.logging.log4j.Logger logger = LogManager.getLogger(TwitterReceiver.class);
 
     public TwitterReceiver(String identity, Properties prop, StorageLevel storageLevel, Authorization auth,
-                           long[] follow, String[] track, String project) {
+                           long[] follow, String[] track) {
 
         super(storageLevel);
 
@@ -75,21 +58,11 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
             }
         }
         logger.info("minFollowers: " + minFollowers);
-
-        if (prop.getProperty("drain.content.minKeywords") != null && prop.getProperty("drain.content.keywords")
-                != null && !prop.getProperty("drain.content.keywords").isEmpty()) {
-            keywordsLowerCase = prop.getProperty("drain.content.keywords").toLowerCase().split(",");
-            try {
-                minKeywords = Integer.parseInt(prop.getProperty("drain.content.minKeywords"));
-            } catch (NumberFormatException e) {
-                logger.info("Num Format Ex; used default minKeywords=" + minKeywords);
-            }
-        }
     }
 
     public TwitterReceiver(String identity, Properties prop, Authorization auth, long[] follow,
-                           String[] track, String project) {
-        this(identity, prop, StorageLevel.MEMORY_AND_DISK_2(), auth, follow, track, project);
+                           String[] track) {
+        this(identity, prop, StorageLevel.MEMORY_AND_DISK_2(), auth, follow, track);
     }
 
 
@@ -129,9 +102,10 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
                     model.setContent(status.getText());
                     model.setLang(status.getLang());
                     model.setRawJson(rawJson);
-                    if(model.getLang().equalsIgnoreCase("en"))
+
+                    if (model.getLang().equalsIgnoreCase("en"))
                         return new Document(model, true);
-                    return new Document(model,false);
+                    return new Document(model, false);
                 }
 
                 @Override
@@ -144,16 +118,12 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
                 @Override
                 public void onMessage(String rawString) {
 
-                    if (rawString == null || rawString.isEmpty() || rawString.trim().isEmpty()) return;
-
                     try {
                         Status status = null;
                         try {
                             status = TwitterObjectFactory.createStatus(rawString);
 
                         } catch (TwitterException twe) {
-                            logger.error("TwitterException: " + twe);
-                            logger.error("TwitterException: " + twe.getCause());
                             logger.error("TwitterException: " + twe.getCause().getMessage());
                             logger.error("TwitterException: " + twe.getErrorMessage());
 
@@ -162,19 +132,15 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
                             }
                         }
 
-                        if (status.getText().isEmpty() || status.getText() == null) return;
-                        else {
-                            Document document = toDocument(status, rawString);
-                            if(document.getProcess())
-                                store((T) document);
-                            else
-                                return;
-                        }
+                        assert status != null;
+                        Document document = toDocument(status, rawString);
+                        if (document.getProcess())
+                            store((T) document);
+
                     } catch (Exception e) {
                         logger.info(e.getStackTrace());
                         logger.info(e.getMessage());
                         logger.info(e.getCause());
-                        logger.info(e.getCause().getMessage());
                         if (!isStopped())
                             restart("Restarting  Twitter receiver ...", e, RESTART_AFTER);
                     }
