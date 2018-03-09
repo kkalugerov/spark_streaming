@@ -11,7 +11,7 @@ import java.util.Set;
 
 
 public @Data class Model implements Serializable {
-    private String rawJson;
+    private String id;
     private String sentiment;
     private String content;
     private String lang;

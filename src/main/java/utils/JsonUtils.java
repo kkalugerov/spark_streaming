@@ -14,31 +14,30 @@ public class JsonUtils {
     private static final org.apache.logging.log4j.Logger logger = LogManager.getLogger(JsonUtils.class);
 
     public static JSONObject toIndex(List<Model> models) {
-
-        if (models.isEmpty())
+        if (models.isEmpty()) {
             return new JSONObject();
+        }
 
         models.forEach(model ->
         {
-            index = new JSONObject();
-                try {
-                    index.put("Content", model.getContent());
-                    index.put("RawJson", model.getRawJson());
-                    index.put("Keywords", model.getKeywords());
-                    index.put("Sentiment", model.getSentiment());
-                    index.put("Hashtags", model.getHashtags());
-                    index.put("Mentions", model.getMentions());
-                    index.put("Cashtags", model.getHashtags());
-                    index.put("Locations", model.getLocations());
-                    index.put("Organizations", model.getOrganizations());
-                    index.put("Persons", model.getPersons());
-                    index.put("Lang", model.getLang());
-                    index.put("timestamp", new java.util.Date());
-                    logger.info("Document to be stored - > " + index.toString());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+            try {
+                index = new JSONObject();
+                index.put("content", model.getContent());
+                index.put("keywords", model.getKeywords());
+                index.put("sentiment", model.getSentiment());
+                index.put("hashtags", model.getHashtags());
+                index.put("mentions", model.getMentions());
+                index.put("cashtags", model.getHashtags());
+                index.put("locations", model.getLocations());
+                index.put("organizations", model.getOrganizations());
+                index.put("persons", model.getPersons());
+                index.put("lang", model.getLang());
+                index.put("timestamp", new java.util.Date());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         });
+        logger.info("Document to be stored - > " + index.toString());
         return index;
     }
 

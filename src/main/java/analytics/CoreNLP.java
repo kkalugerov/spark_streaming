@@ -146,7 +146,7 @@ public class CoreNLP {
 
     public Set<String> findNEPerson(String content) {
         Set<String> persons = new HashSet<>();
-        if(content != null && !content.isEmpty()) {
+        if (content != null && !content.isEmpty()) {
             String[] tokens = tokenizer.tokenize(content);
             if (tokens.length > 0) {
                 Span[] nameSpans = personFinder.find(tokens);
@@ -185,12 +185,11 @@ public class CoreNLP {
     public Set<String> findNEOrganization(String content) {
         Set<String> organizations = new HashSet<>();
         String[] tokens = tokenizer.tokenize(content);
-        String[] namedEntities = new String[0];
+        String[] namedEntities;
         Span[] nameSpans;
         if (tokens.length > 0) {
             nameSpans = organizationFinder.find(tokens);
-            if (nameSpans.length > 0)
-                namedEntities = (Span.spansToStrings(nameSpans, tokens));
+            namedEntities = (Span.spansToStrings(nameSpans, tokens));
             organizations.addAll(Arrays.asList(namedEntities));
             return organizations;
         }
@@ -259,14 +258,13 @@ public class CoreNLP {
             }
             logger.info(keywords.toString());
         } catch (Exception ex) {
-
+            logger.info(ex.getMessage());
         } finally {
-
             try {
                 stream.end();
                 stream.close();
             } catch (Exception e) {
-
+                logger.info(e.getMessage());
             }
         }
         logger.info("Generated keywords from content : " + keywords);

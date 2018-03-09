@@ -1,7 +1,6 @@
 package elasticsearch;
 
 import analytics.CoreNLP;
-import model.Document;
 import model.Model;
 
 import java.io.*;
@@ -18,6 +17,10 @@ public class ElasticConnector implements Serializable {
     private static String host;
     private static ElasticConnector INSTANCE;
 
+    public  ElasticConnector(){
+        loadProps();
+        init();
+    }
     private static void loadProps() {
         InputStream inputStream = CoreNLP.class.getClassLoader().getResourceAsStream("elastic_search.properties");
         try {
@@ -48,33 +51,41 @@ public class ElasticConnector implements Serializable {
     }
 
     public static synchronized void toElastic(List<Model> models) {
-        loadProps();
-        init();
         URL obj;
         HttpURLConnection conn;
         BufferedReader br;
         StringBuilder outputBuilder;
-        try {
-            obj = new URL("http://" + host + ":" + port + "/twitter/crypto_currencies");
+        for (int i = 0; i < models.size(); i++) {
+            try {
+                obj = new URL("http://" + host + ":" + port + "/twitter/crypto_currencies/" + models.get(i).getId());
 
-            conn = (HttpURLConnection) obj.openConnection();
-            conn.setDoOutput(true);
-            conn.setRequestMethod("POST");
-            try (OutputStreamWriter out = new OutputStreamWriter(conn.getOutputStream())) {
-                out.write(toIndex(models).toString());
+                conn = (HttpURLConnection) obj.openConnection();
+                conn.setDoOutput(true);
+                conn.setRequestMethod("POST");
+                try (OutputStreamWriter out = new OutputStreamWriter(conn.getOutputStream())) {
+                    out.write(toIndex(models).toString());
+                }
+
+                br = new BufferedReader(new InputStreamReader(
+                        (conn.getInputStream())));
+
+                String output;
+                outputBuilder = new StringBuilder();
+                while ((output = br.readLine()) != null) {
+                    outputBuilder.append(output);
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
 
-            br = new BufferedReader(new InputStreamReader(
-                    (conn.getInputStream())));
-
-            String output;
-            outputBuilder = new StringBuilder();
-            while ((output = br.readLine()) != null) {
-                outputBuilder.append(output);
-            }
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
         }
+    }
+
+    public static synchronized void fromElastic(String index, String type){
+        URL obj;
+        HttpURLConnection conn;
+        BufferedReader br;
+        StringBuilder outputBuilder;
     }
 }

@@ -97,12 +97,12 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
             }
 
             newTwitterStream.addListener(new RawStreamListener() {
-                private Model toModel(Status status, String rawJson) {
+                private Model toModel(Status status) {
                     Model model = new Model();
 
+                    model.setId(String.valueOf(status.getId()));
                     model.setContent(status.getText());
                     model.setLang(status.getLang());
-                    model.setRawJson(rawJson);
 
                     return model;
                 }
@@ -132,7 +132,7 @@ public class TwitterReceiver<T> extends MainReceiver<T> {
                         }
 
                         assert status != null;
-                        Model model = toModel(status, rawString);
+                        Model model = toModel(status);
                         store((T) model);
 
                     } catch (Exception e) {
