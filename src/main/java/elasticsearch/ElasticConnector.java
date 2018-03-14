@@ -17,10 +17,11 @@ public class ElasticConnector implements Serializable {
     private static String host;
     private static ElasticConnector INSTANCE;
 
-    public  ElasticConnector(){
+    public ElasticConnector() {
         loadProps();
         init();
     }
+
     private static void loadProps() {
         InputStream inputStream = CoreNLP.class.getClassLoader().getResourceAsStream("elastic_search.properties");
         try {
@@ -80,12 +81,5 @@ public class ElasticConnector implements Serializable {
             }
 
         }
-    }
-
-    public static synchronized void fromElastic(String index, String type){
-        URL obj;
-        HttpURLConnection conn;
-        BufferedReader br;
-        StringBuilder outputBuilder;
     }
 }

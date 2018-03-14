@@ -1,6 +1,6 @@
 package functions;
 
-import database.MongoConnector;
+import data_warehouse.MongoConnector;
 import elasticsearch.ElasticConnector;
 import model.Document;
 import model.Model;

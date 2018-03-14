@@ -1,24 +1,28 @@
 package utils;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class ReadCSV {
+    private static List<String> fullFormats = Arrays.asList("yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ssZ", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+
 
     public static List<String> read() {
         Map<String, String> data = new HashMap<>();
         List<String> data2 = new ArrayList<>();
         BufferedReader bufferedReader;
-        String delimiter = ";";
+        String delimiter = ",";
         String line;
         String[] columns;
         int iteration = 0;
         try {
-            bufferedReader = new BufferedReader(new FileReader(new File("")
-                    .getAbsolutePath() + "/src/main/resources/sts_gold_tweet.csv"));
+            Writer writer = Files.newBufferedWriter(Paths.get("/home/zealot/Documents/fixed_Santa_Monika_data.csv"));
+            bufferedReader = new BufferedReader(new FileReader(
+                    new File("/home/zealot/Documents/fixed_Santa_Monika_data.csv")));
             while ((line = bufferedReader.readLine()) != null) {
                 if (iteration == 0) {
                     iteration++;
@@ -38,8 +42,7 @@ public class ReadCSV {
     public static void save(List<String> objects) {
         FileWriter writer;
         try {
-            writer = new FileWriter(new File("")
-                    .getAbsolutePath() + "/src/main/resources/gold_tweet.txt");
+            writer = new FileWriter(new File("/home/zealot/Documents/fixed.csv"));
             for (String object : objects) {
                 writer.write(object);
                 writer.write("\n");
@@ -49,7 +52,32 @@ public class ReadCSV {
         }
     }
 
-    public static void main(String[] args) {
-        save(read());
+    public static String now() {
+        return toFullFormat((new DateTime()).getMillis());
+    }
+
+    public static String toFullFormat(long dateTime) {
+        Iterator var2 = fullFormats.iterator();
+
+        while (var2.hasNext()) {
+            String template = (String) var2.next();
+
+            try {
+                return format(template, dateTime);
+            } catch (IllegalArgumentException var5) {
+                ;
+            }
+        }
+
+        return "";
+    }
+
+    public static String format(String template, long millis) {
+        return DateTimeFormat.forPattern(template).withZoneUTC().print(millis);
+    }
+
+    public static void main(String[] args) throws Exception {
+
+//        save(read());
     }
 }

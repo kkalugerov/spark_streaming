@@ -90,10 +90,6 @@ public class MainApp {
 
     private static void loadProp(String propLocation) throws IOException {
 
-        if (propLocation.contains("database")) {
-            return;
-        }
-
         if (propLocation.isEmpty()) {
             drainProp.load(MainApp.class.getClassLoader().getResourceAsStream("drain.properties"));
         }

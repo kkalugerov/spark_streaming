@@ -1,4 +1,4 @@
-package database;
+package data_warehouse;
 
 import analytics.CoreNLP;
 import com.mongodb.MongoClient;
@@ -28,9 +28,11 @@ public class MongoConnector implements Serializable {
 
     private static final org.apache.logging.log4j.Logger logger = LogManager.getLogger(MongoConnector.class);
 
-    public MongoConnector(){
+    public MongoConnector() {
         loadProps();
         init();
+        makeConnectionToDatabase();
+
     }
 
     private static void loadProps() {
@@ -67,16 +69,16 @@ public class MongoConnector implements Serializable {
         return mongoDatabase;
     }
 
-    private MongoCollection getCollection(String collectionName) {
-        MongoDatabase existingDB = makeConnectionToDatabase();
-        MongoIterable<String> collections = existingDB.listCollectionNames();
+    private MongoCollection<Document> getCollection(String collectionName) {
+//        MongoDatabase existingDB = makeConnectionToDatabase();
+        MongoIterable<String> collections = mongoDatabase.listCollectionNames();
 
         if (collections.into(new ArrayList<>()).contains(collectionName)) {
             logger.info("Accessing the collection -> " + collectionName + " is successful ! ");
-            return existingDB.getCollection(collectionName);
+            return mongoDatabase.getCollection(collectionName);
         } else {
             logger.error("No such collection !");
-            MongoCollection newCollection = existingDB.getCollection(collectionName);
+            MongoCollection<Document> newCollection = mongoDatabase.getCollection(collectionName);
             logger.info("New collection with name -> " + collectionName + "has been created !");
             return newCollection;
         }
@@ -84,7 +86,7 @@ public class MongoConnector implements Serializable {
 
     public void insertToCollection(String collectionName, List<Model> models) {
 
-        MongoCollection existingCollection = getCollection(collectionName);
+        MongoCollection<Document> existingCollection = getCollection(collectionName);
         existingCollection.insertOne(toMongoDoc(models));
         logger.info("Document inserted successful !");
     }
@@ -102,7 +104,6 @@ public class MongoConnector implements Serializable {
             mongoDoc.put("sentiment", model.getSentiment());
             mongoDoc.put("hashtags", model.getHashtags());
             mongoDoc.put("mentions", model.getMentions());
-            mongoDoc.put("cashtags", model.getHashtags());
             mongoDoc.put("locations", model.getLocations());
             mongoDoc.put("organizations", model.getOrganizations());
             mongoDoc.put("persons", model.getPersons());
@@ -112,4 +113,24 @@ public class MongoConnector implements Serializable {
         logger.info("Document to be stored - > " + mongoDoc.toString());
         return mongoDoc;
     }
+
+    //    public void insertToCollection(String collectionName, List<Model> models) {
+//        MongoIterable<String> databases = mongoClient.listDatabaseNames();
+//        MongoCollection<Document> collection;
+//        if (databases.into(new ArrayList<>()).contains(databaseName))
+//            mongoDatabase = mongoClient.getDatabase(databaseName);
+//        else
+//            mongoDatabase = mongoClient.getDatabase(databaseName);
+//
+//        MongoIterable<String> collections = mongoDatabase.listCollectionNames();
+//        if (collections.into(new ArrayList<>()).contains(collectionName)) {
+//            collection = mongoDatabase.getCollection(collectionName);
+//            collection.insertOne(toMongoDoc(models));
+//            logger.info("Document inserted successful !");
+//        } else {
+//            collection = mongoDatabase.getCollection(collectionName);
+//            collection.insertOne(toMongoDoc(models));
+//            logger.info("Document inserted successful !");
+//        }
+//    }
 }
