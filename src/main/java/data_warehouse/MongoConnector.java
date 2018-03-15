@@ -33,6 +33,7 @@ public class MongoConnector implements Serializable {
         init();
         makeConnectionToDatabase();
 
+
     }
 
     private static void loadProps() {
@@ -51,13 +52,12 @@ public class MongoConnector implements Serializable {
         mongoClient = new MongoClient(new ServerAddress(host, port));
     }
 
-    private MongoDatabase makeConnectionToDatabase() {
+    private void makeConnectionToDatabase() {
         try {
             MongoIterable<String> databases = mongoClient.listDatabaseNames();
             if (databases.into(new ArrayList<>()).contains(databaseName)) {
                 logger.info("Connection to database -> " + databaseName + " is successful !");
                 mongoDatabase = mongoClient.getDatabase(databaseName);
-                return mongoDatabase;
             } else {
                 logger.error("No such database ");
                 mongoDatabase = mongoClient.getDatabase(databaseName);
@@ -66,30 +66,30 @@ public class MongoConnector implements Serializable {
         } catch (MongoSocketOpenException ex) {
             logger.error(ex.getMessage());
         }
-        return mongoDatabase;
     }
 
-    private MongoCollection<Document> getCollection(String collectionName) {
-//        MongoDatabase existingDB = makeConnectionToDatabase();
+    public void insertToCollection(String collectionName, List<Model> documents) {
         MongoIterable<String> collections = mongoDatabase.listCollectionNames();
-
+        MongoCollection<Document> mongoCollection;
         if (collections.into(new ArrayList<>()).contains(collectionName)) {
+            mongoCollection = mongoDatabase.getCollection(collectionName);
             logger.info("Accessing the collection -> " + collectionName + " is successful ! ");
-            return mongoDatabase.getCollection(collectionName);
+            mongoCollection.insertOne(toMongoDoc(documents));
+            logger.info("Document inserted successful !");
         } else {
             logger.error("No such collection !");
-            MongoCollection<Document> newCollection = mongoDatabase.getCollection(collectionName);
+            mongoCollection = mongoDatabase.getCollection(collectionName);
             logger.info("New collection with name -> " + collectionName + "has been created !");
-            return newCollection;
+            mongoCollection.insertOne(toMongoDoc(documents));
+            logger.info("Document inserted successful !");
         }
     }
-
-    public void insertToCollection(String collectionName, List<Model> models) {
-
-        MongoCollection<Document> existingCollection = getCollection(collectionName);
-        existingCollection.insertOne(toMongoDoc(models));
-        logger.info("Document inserted successful !");
-    }
+//
+//    public void insertToCollection(String collectionName, List<Model> models) {
+//
+//        mongoCollection.insertOne(toMongoDoc(models));
+//        logger.info("Document inserted successful !");
+//    }
 
     private static Document toMongoDoc(List<Model> models) {
         if (models.isEmpty()) {
@@ -99,16 +99,16 @@ public class MongoConnector implements Serializable {
         models.forEach(model ->
         {
             mongoDoc = new Document();
-            mongoDoc.put("content", model.getContent());
-            mongoDoc.put("keywords", model.getKeywords());
-            mongoDoc.put("sentiment", model.getSentiment());
-            mongoDoc.put("hashtags", model.getHashtags());
-            mongoDoc.put("mentions", model.getMentions());
-            mongoDoc.put("locations", model.getLocations());
-            mongoDoc.put("organizations", model.getOrganizations());
-            mongoDoc.put("persons", model.getPersons());
-            mongoDoc.put("lang", model.getLang());
-            mongoDoc.put("timestamp", new java.util.Date());
+            mongoDoc.append("content", model.getContent());
+            mongoDoc.append("keywords", model.getKeywords());
+            mongoDoc.append("sentiment", model.getSentiment());
+            mongoDoc.append("hashtags", model.getHashtags());
+            mongoDoc.append("mentions", model.getMentions());
+            mongoDoc.append("locations", model.getLocations());
+            mongoDoc.append("organizations", model.getOrganizations());
+            mongoDoc.append("persons", model.getPersons());
+            mongoDoc.append("lang", model.getLang());
+            mongoDoc.append("timestamp", new java.util.Date());
         });
         logger.info("Document to be stored - > " + mongoDoc.toString());
         return mongoDoc;

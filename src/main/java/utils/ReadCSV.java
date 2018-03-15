@@ -4,15 +4,10 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import java.io.*;
 import java.util.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
 public class ReadCSV {
     private static List<String> fullFormats = Arrays.asList("yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ssZ", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
-
     public static List<String> read() {
-        Map<String, String> data = new HashMap<>();
         List<String> data2 = new ArrayList<>();
         BufferedReader bufferedReader;
         String delimiter = ",";
@@ -20,7 +15,6 @@ public class ReadCSV {
         String[] columns;
         int iteration = 0;
         try {
-            Writer writer = Files.newBufferedWriter(Paths.get("/home/zealot/Documents/fixed_Santa_Monika_data.csv"));
             bufferedReader = new BufferedReader(new FileReader(
                     new File("/home/zealot/Documents/fixed_Santa_Monika_data.csv")));
             while ((line = bufferedReader.readLine()) != null) {
